@@ -1,0 +1,19 @@
+{
+  "name": "la-orden-suprema",
+  "version": "1.0.0",
+  "description": "La Orden Suprema - Assassin Management System",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "lint": "cd client && npm run lint",
+    "preview": "cd client && npm run preview",
+    "install:client": "cd client && npm install"
+  },
+  "keywords": ["assassin", "management", "react", "typescript"],
+  "author": "",
+  "license": "ISC"
+}

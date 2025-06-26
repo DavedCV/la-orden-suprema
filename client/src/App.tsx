@@ -1,10 +1,9 @@
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { Router } from "./components/Router";
-import { useAuthStore } from "./store/authStore";
-import { apiService } from "./services/api";
-import { Toaster } from "./components/ui/Toaster";
+import { Router, Toaster } from "./shared/components";
+import { useAuthStore } from "./shared/store/authStore";
+import { apiService } from "./shared/services/api";
 
 // Create a client with modern React Query configuration
 const queryClient = new QueryClient({

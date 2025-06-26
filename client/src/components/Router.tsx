@@ -7,6 +7,10 @@ import { AssassinManagementPage } from "../pages/AssassinManagementPage";
 import { MissionManagementPage } from "../pages/MissionManagementPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { BloodMarkersPage } from "../pages/BloodMarkersPage";
+import { AssassinDirectoryPage } from "../pages/AssassinDirectoryPage";
+import { LocationMapPage } from "../pages/LocationMapPage";
+import { ReportsPage } from "../pages/ReportsPage";
+import { AssassinMissionsPage } from "../pages/AssassinMissionsPage";
 import { FirstLoginModal } from "./auth/FirstLoginModal";
 
 type Route =
@@ -14,7 +18,11 @@ type Route =
   | "assassins"
   | "missions"
   | "profile"
-  | "blood-markers";
+  | "blood-markers"
+  | "directory"
+  | "map"
+  | "reports"
+  | "my-missions";
 
 export function Router() {
   const { isAuthenticated, isLoading, user } = useAuthStore();
@@ -39,6 +47,14 @@ export function Router() {
       setCurrentRoute("profile");
     } else if (path === "/blood-markers") {
       setCurrentRoute("blood-markers");
+    } else if (path === "/directory") {
+      setCurrentRoute("directory");
+    } else if (path === "/map") {
+      setCurrentRoute("map");
+    } else if (path === "/reports") {
+      setCurrentRoute("reports");
+    } else if (path === "/my-missions") {
+      setCurrentRoute("my-missions");
     } else {
       setCurrentRoute("dashboard");
     }
@@ -54,6 +70,14 @@ export function Router() {
         setCurrentRoute("profile");
       } else if (newPath === "/blood-markers") {
         setCurrentRoute("blood-markers");
+      } else if (newPath === "/directory") {
+        setCurrentRoute("directory");
+      } else if (newPath === "/map") {
+        setCurrentRoute("map");
+      } else if (newPath === "/reports") {
+        setCurrentRoute("reports");
+      } else if (newPath === "/my-missions") {
+        setCurrentRoute("my-missions");
       } else {
         setCurrentRoute("dashboard");
       }
@@ -94,12 +118,30 @@ export function Router() {
     );
   }
 
-  // Route protection - only admins can access assassin and mission management
+  // Route protection - only admins can access certain pages
   if (currentRoute === "assassins" && user?.role !== "admin") {
     return <DashboardPage />;
   }
 
   if (currentRoute === "missions" && user?.role !== "admin") {
+    return <DashboardPage />;
+  }
+
+  if (currentRoute === "map" && user?.role !== "admin") {
+    return <DashboardPage />;
+  }
+
+  if (currentRoute === "reports" && user?.role !== "admin") {
+    return <DashboardPage />;
+  }
+
+  // Directory, blood-markers and my-missions are accessible to assassins only
+  if (
+    (currentRoute === "directory" ||
+      currentRoute === "blood-markers" ||
+      currentRoute === "my-missions") &&
+    user?.role !== "assassin"
+  ) {
     return <DashboardPage />;
   }
 
@@ -112,6 +154,14 @@ export function Router() {
       return <ProfilePage />;
     case "blood-markers":
       return <BloodMarkersPage />;
+    case "directory":
+      return <AssassinDirectoryPage />;
+    case "map":
+      return <LocationMapPage />;
+    case "reports":
+      return <ReportsPage />;
+    case "my-missions":
+      return <AssassinMissionsPage />;
     default:
       return <DashboardPage />;
   }

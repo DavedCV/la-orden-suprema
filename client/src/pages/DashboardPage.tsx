@@ -21,6 +21,7 @@ import {
   Skull,
   Bell,
   ExternalLink,
+  PieChart,
 } from "lucide-react";
 import { toast } from "../utils/toast";
 import { formatDate, formatCurrency } from "../utils";
@@ -220,7 +221,7 @@ export function DashboardPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleNavigate("/missions")}
+                    onClick={() => handleNavigate("/my-missions")}
                     className="text-gold-400 hover:text-gold-300"
                   >
                     Ver todas <ExternalLink className="h-3 w-3 ml-1" />
@@ -294,9 +295,23 @@ export function DashboardPage() {
                       <Target className="h-4 w-4 mr-2" />
                       Gestionar Misiones
                     </Button>
-                    <Button fullWidth variant="secondary" size="sm">
+                    <Button
+                      fullWidth
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleNavigate("/map")}
+                    >
                       <BarChart3 className="h-4 w-4 mr-2" />
-                      Ver Reportes
+                      Mapa Global
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleNavigate("/reports")}
+                    >
+                      <PieChart className="h-4 w-4 mr-2" />
+                      Reportes
                     </Button>
                   </>
                 ) : (
@@ -314,7 +329,7 @@ export function DashboardPage() {
                       fullWidth
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleNavigate("/missions")}
+                      onClick={() => handleNavigate("/my-missions")}
                     >
                       <Target className="h-4 w-4 mr-2" />
                       Mis Misiones
@@ -601,6 +616,7 @@ function AssassinMissions({
           reward={formatCurrency(mission.reward)}
           status={mission.status}
           deadline={formatDate(mission.deadline)}
+          onNavigate={onNavigate}
         />
       ))}
       {data.activeMissions.length === 0 && (
@@ -612,10 +628,21 @@ function AssassinMissions({
       {data.activeMissions.length > 3 && (
         <div className="text-center pt-4">
           <button
-            onClick={() => onNavigate("/missions")}
+            onClick={() => onNavigate("/my-missions")}
             className="text-sm text-gold-400 hover:text-gold-300 transition-colors flex items-center justify-center space-x-1"
           >
             <span>Ver todas las misiones ({data.activeMissions.length})</span>
+            <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+      {data.activeMissions.length > 0 && data.activeMissions.length <= 3 && (
+        <div className="text-center pt-4">
+          <button
+            onClick={() => onNavigate("/my-missions")}
+            className="text-sm text-gold-400 hover:text-gold-300 transition-colors flex items-center justify-center space-x-1"
+          >
+            <span>Ver mis misiones</span>
             <ArrowRight className="h-3 w-3" />
           </button>
         </div>
@@ -730,12 +757,14 @@ function MissionItem({
   reward,
   status,
   deadline,
+  onNavigate,
 }: {
   title: string;
   target: string;
   reward: string;
   status: string;
   deadline: string;
+  onNavigate: (path: string) => void;
 }) {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -785,8 +814,12 @@ function MissionItem({
         </div>
         {canProgressMission(status) && (
           <div className="mt-3 pt-3 border-t border-orden-700">
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-xs">
-              Iniciar Misión
+            <Button
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-xs"
+              onClick={() => onNavigate("/my-missions")}
+            >
+              Ver y Gestionar
             </Button>
           </div>
         )}

@@ -393,21 +393,21 @@ class ApiService {
           type: "mission_assigned",
           message: "Nueva misión asignada: Recuperación de Datos",
           timestamp: "2024-01-25T09:30:00Z",
-          userId: "assassin-001",
+          userId: "2",
         },
         {
           id: "activity-002",
           type: "mission_completed",
           message: "Misión completada: Operación Nocturna - Recompensa: 4,500 monedas",
           timestamp: "2024-01-22T18:45:00Z",
-          userId: "assassin-001",
+          userId: "2",
         },
         {
           id: "activity-003",
           type: "debt_created",
           message: "Nuevo marcador de sangre: Deuda con John Wick por asistencia",
           timestamp: "2024-01-20T16:20:00Z",
-          userId: "assassin-001",
+          userId: "2",
         }
       ]
     };
@@ -504,7 +504,7 @@ class ApiService {
         priority: "high",
         createdAt: "2024-01-20T10:00:00Z",
         updatedAt: "2024-01-22T14:30:00Z",
-        assignedTo: "assassin-001",
+        assignedTo: "2",
         assignedAt: "2024-01-20T10:15:00Z",
       },
       {
@@ -518,7 +518,7 @@ class ApiService {
         priority: "medium",
         createdAt: "2024-01-25T09:00:00Z",
         updatedAt: "2024-01-25T09:00:00Z",
-        assignedTo: "assassin-001",
+        assignedTo: "2",
         assignedAt: "2024-01-25T09:30:00Z",
       },
       {
@@ -556,7 +556,7 @@ class ApiService {
         priority: "medium",
         createdAt: "2024-01-15T08:30:00Z",
         updatedAt: "2024-01-22T18:45:00Z",
-        assignedTo: "assassin-001",
+        assignedTo: "2",
         assignedAt: "2024-01-15T09:00:00Z",
         completedAt: "2024-01-22T18:45:00Z",
       },

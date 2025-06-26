@@ -1,0 +1,43 @@
+@startuml
+skinparam componentStyle uml2
+skinparam Linetype ortho
+
+package "React Application" {
+    [main.tsx] --> [App.tsx]
+    [App.tsx] --> [shared/components/Router.tsx]
+
+    package "Routes" {
+        [shared/components/Router.tsx] --> [LoginPage]
+        [shared/components/Router.tsx] --> [DashboardPage]
+        [shared/components/Router.tsx] --> [Etc...]
+    }
+
+    package "Features" {
+        [features/auth]
+        [features/dashboard]
+        [features/assassins]
+        [features/missions]
+        [features/reports]
+        [features/blood-markers]
+    }
+
+    [LoginPage] --> [features/auth]
+    [DashboardPage] --> [features/dashboard]
+
+    [features/dashboard] --> [features/assassins]
+    [features/dashboard] --> [features/missions]
+    [features/dashboard] --> [features/reports]
+    [features/dashboard] --> [features/blood-markers]
+
+    package "Shared Logic" {
+        [shared/hooks]
+        [shared/store]
+        [shared/services]
+        [shared/components]
+        [shared/utils]
+        [shared/types]
+    }
+
+    "Features" ..> "Shared Logic" : Uses
+}
+@enduml

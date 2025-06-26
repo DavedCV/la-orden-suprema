@@ -8,6 +8,8 @@ export interface User {
   alias: string;
   email: string;
   role: UserRole;
+  isFirstLogin?: boolean;
+  temporaryPassword?: boolean;
 }
 
 export interface Assassin extends User {
@@ -91,9 +93,11 @@ export interface CreateMissionForm {
   description: string;
   reward: number;
   deadline: string;
+  priority?: 'low' | 'medium' | 'high';
 }
 
 export interface CreateBloodMarkerForm {
+  debtorId: string;
   creditorId: string;
   description: string;
 }

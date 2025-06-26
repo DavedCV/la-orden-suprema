@@ -1,7 +1,7 @@
 import { useAuthStore } from "../store/authStore";
 import { Button } from "../components/ui/Button";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiService } from "../services/api";
 import {
   LogOut,
@@ -14,13 +14,26 @@ import {
   Settings,
   Clock,
   CheckCircle,
+  AlertTriangle,
+  TrendingUp,
+  Calendar,
+  ArrowRight,
+  Skull,
+  Bell,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "../utils/toast";
 import { formatDate, formatCurrency } from "../utils";
-import type { AdminDashboard, AssassinDashboard } from "../types";
+import type {
+  AdminDashboard,
+  AssassinDashboard,
+  BloodMarker,
+  Assassin,
+} from "../types";
 
 export function DashboardPage() {
   const { user, logout } = useAuthStore();
+  const queryClient = useQueryClient();
 
   // Fetch dashboard data based on user role
   const { data: adminData, isLoading: isLoadingAdmin } = useQuery({
@@ -35,9 +48,68 @@ export function DashboardPage() {
     enabled: user?.role === "assassin",
   });
 
-  const isLoading = isLoadingAdmin || isLoadingAssassin;
+  // Fetch blood markers for assassins
+  const { data: bloodMarkersData, isLoading: isLoadingBloodMarkers } = useQuery(
+    {
+      queryKey: ["blood-markers"],
+      queryFn: () => apiService.getBloodMarkers(),
+      enabled: user?.role === "assassin",
+    }
+  );
+
+  // Fetch assassins data for blood marker names
+  const { data: assassinsData } = useQuery({
+    queryKey: ["assassins"],
+    queryFn: () => apiService.getAssassins(),
+    enabled: user?.role === "assassin",
+  });
+
+  const isLoading =
+    isLoadingAdmin || isLoadingAssassin || isLoadingBloodMarkers;
   const dashboardData =
     user?.role === "admin" ? adminData?.data : assassinData?.data;
+  const bloodMarkers = bloodMarkersData?.data || [];
+  const assassins = assassinsData?.data || [];
+
+  // Mutations for interactive functionality
+  const payMarkerMutation = useMutation({
+    mutationFn: (markerId: string) => apiService.payBloodMarker(markerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      toast({
+        type: "success",
+        title: "Marcador pagado",
+        message: "Has marcado la deuda como pagada. Esperando confirmación.",
+      });
+    },
+    onError: () => {
+      toast({
+        type: "error",
+        title: "Error",
+        message: "No se pudo procesar el pago del marcador",
+      });
+    },
+  });
+
+  const confirmPaymentMutation = useMutation({
+    mutationFn: (markerId: string) =>
+      apiService.confirmBloodMarkerPayment(markerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      toast({
+        type: "success",
+        title: "Pago confirmado",
+        message: "El marcador ha sido saldado exitosamente",
+      });
+    },
+    onError: () => {
+      toast({
+        type: "error",
+        title: "Error",
+        message: "No se pudo confirmar el pago",
+      });
+    },
+  });
 
   const handleLogout = () => {
     logout();
@@ -46,6 +118,11 @@ export function DashboardPage() {
       title: "Sesión cerrada",
       message: "Has cerrado sesión correctamente",
     });
+  };
+
+  const handleNavigate = (path: string) => {
+    window.history.pushState({}, "", path);
+    window.location.reload();
   };
 
   if (isLoading) {
@@ -115,7 +192,7 @@ export function DashboardPage() {
           <p className="text-orden-300">
             {user?.role === "admin"
               ? "Administra la orden y supervisa las operaciones"
-              : "Revisa tus misiones y gestiona tu perfil"}
+              : "Revisa tus misiones activas y gestiona tu perfil"}
           </p>
         </div>
 
@@ -133,16 +210,31 @@ export function DashboardPage() {
           {/* Primary Content */}
           <div className="lg:col-span-2 space-y-6">
             <div className="card p-6">
-              <h3 className="text-lg font-semibold text-orden-100 mb-4">
-                {user?.role === "admin"
-                  ? "Actividad Reciente"
-                  : "Misiones Activas"}
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-orden-100">
+                  {user?.role === "admin"
+                    ? "Actividad Reciente"
+                    : "Misiones Activas"}
+                </h3>
+                {user?.role === "assassin" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleNavigate("/missions")}
+                    className="text-gold-400 hover:text-gold-300"
+                  >
+                    Ver todas <ExternalLink className="h-3 w-3 ml-1" />
+                  </Button>
+                )}
+              </div>
               <div className="space-y-3">
                 {user?.role === "admin" && dashboardData ? (
                   <AdminActivity data={dashboardData as AdminDashboard} />
                 ) : user?.role === "assassin" && dashboardData ? (
-                  <AssassinMissions data={dashboardData as AssassinDashboard} />
+                  <AssassinMissions
+                    data={dashboardData as AssassinDashboard}
+                    onNavigate={handleNavigate}
+                  />
                 ) : (
                   <div className="text-center py-8 text-orden-400">
                     <p>No hay datos disponibles</p>
@@ -150,11 +242,24 @@ export function DashboardPage() {
                 )}
               </div>
             </div>
+
+            {/* Recent Activity Section - Only for Assassins */}
+            {user?.role === "assassin" && dashboardData && (
+              <div className="card p-6">
+                <h3 className="text-lg font-semibold text-orden-100 mb-4 flex items-center">
+                  <Bell className="h-5 w-5 mr-2 text-gold-400" />
+                  Actividad Reciente
+                </h3>
+                <div className="space-y-3">
+                  <AssassinActivity data={dashboardData as AssassinDashboard} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Quick Actions */}
+            {/* Quick Actions - For both roles */}
             <div className="card p-6">
               <h3 className="text-lg font-semibold text-orden-100 mb-4">
                 Acciones Rápidas
@@ -162,13 +267,32 @@ export function DashboardPage() {
               <div className="space-y-3">
                 {user?.role === "admin" ? (
                   <>
-                    <Button fullWidth variant="secondary" size="sm">
+                    <Button
+                      fullWidth
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleNavigate("/profile")}
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Mi Perfil
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleNavigate("/assassins")}
+                    >
                       <Users className="h-4 w-4 mr-2" />
                       Gestionar Asesinos
                     </Button>
-                    <Button fullWidth variant="secondary" size="sm">
+                    <Button
+                      fullWidth
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleNavigate("/missions")}
+                    >
                       <Target className="h-4 w-4 mr-2" />
-                      Crear Misión
+                      Gestionar Misiones
                     </Button>
                     <Button fullWidth variant="secondary" size="sm">
                       <BarChart3 className="h-4 w-4 mr-2" />
@@ -177,17 +301,41 @@ export function DashboardPage() {
                   </>
                 ) : (
                   <>
-                    <Button fullWidth variant="secondary" size="sm">
+                    <Button
+                      fullWidth
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleNavigate("/profile")}
+                    >
                       <User className="h-4 w-4 mr-2" />
                       Mi Perfil
                     </Button>
-                    <Button fullWidth variant="secondary" size="sm">
+                    <Button
+                      fullWidth
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleNavigate("/missions")}
+                    >
                       <Target className="h-4 w-4 mr-2" />
                       Mis Misiones
                     </Button>
-                    <Button fullWidth variant="secondary" size="sm">
-                      <Coins className="h-4 w-4 mr-2" />
+                    <Button
+                      fullWidth
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleNavigate("/blood-markers")}
+                    >
+                      <Skull className="h-4 w-4 mr-2" />
                       Blood Markers
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleNavigate("/directory")}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Directorio
                     </Button>
                   </>
                 )}
@@ -198,7 +346,138 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* System Status */}
+            {/* Blood Markers Section - Only for Assassins */}
+            {user?.role === "assassin" && (
+              <>
+                {/* Deudas que debo */}
+                <div className="card p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-orden-100">
+                      Mis Deudas
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <Skull className="h-5 w-5 text-red-400" />
+                      <span className="text-sm text-red-400 font-medium">
+                        {
+                          bloodMarkers.filter(
+                            (marker) =>
+                              marker.debtorId === user?.id &&
+                              marker.status === "Pendiente"
+                          ).length
+                        }
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {bloodMarkers
+                      .filter((marker) => marker.debtorId === user?.id)
+                      .slice(0, 3)
+                      .map((marker) => (
+                        <BloodMarkerItem
+                          key={marker.id}
+                          marker={marker}
+                          isCreditor={false}
+                          assassins={assassins}
+                          onPayMarker={(id) => payMarkerMutation.mutate(id)}
+                          onConfirmPayment={(id) =>
+                            confirmPaymentMutation.mutate(id)
+                          }
+                          isLoading={
+                            payMarkerMutation.isPending ||
+                            confirmPaymentMutation.isPending
+                          }
+                        />
+                      ))}
+                    {bloodMarkers.filter(
+                      (marker) => marker.debtorId === user?.id
+                    ).length === 0 && (
+                      <div className="text-center py-6 text-orden-400">
+                        <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No tienes deudas pendientes</p>
+                      </div>
+                    )}
+                    {bloodMarkers.filter(
+                      (marker) => marker.debtorId === user?.id
+                    ).length > 3 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleNavigate("/blood-markers")}
+                        className="w-full text-red-400 hover:text-red-300"
+                      >
+                        Ver todas mis deudas{" "}
+                        <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Deudas que me deben */}
+                <div className="card p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-orden-100">
+                      Me Deben
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <Coins className="h-5 w-5 text-gold-400" />
+                      <span className="text-sm text-gold-400 font-medium">
+                        {
+                          bloodMarkers.filter(
+                            (marker) =>
+                              marker.creditorId === user?.id &&
+                              marker.status === "Pendiente"
+                          ).length
+                        }
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {bloodMarkers
+                      .filter((marker) => marker.creditorId === user?.id)
+                      .slice(0, 3)
+                      .map((marker) => (
+                        <BloodMarkerItem
+                          key={marker.id}
+                          marker={marker}
+                          isCreditor={true}
+                          assassins={assassins}
+                          onPayMarker={(id) => payMarkerMutation.mutate(id)}
+                          onConfirmPayment={(id) =>
+                            confirmPaymentMutation.mutate(id)
+                          }
+                          isLoading={
+                            payMarkerMutation.isPending ||
+                            confirmPaymentMutation.isPending
+                          }
+                        />
+                      ))}
+                    {bloodMarkers.filter(
+                      (marker) => marker.creditorId === user?.id
+                    ).length === 0 && (
+                      <div className="text-center py-6 text-orden-400">
+                        <Skull className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Nadie te debe favores</p>
+                      </div>
+                    )}
+                    {bloodMarkers.filter(
+                      (marker) => marker.creditorId === user?.id
+                    ).length > 3 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleNavigate("/blood-markers")}
+                        className="w-full text-gold-400 hover:text-gold-300"
+                      >
+                        Ver todas las deudas{" "}
+                        <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* System Status - For both roles */}
             <div className="card p-6">
               <h3 className="text-lg font-semibold text-orden-100 mb-4">
                 Estado del Sistema
@@ -206,7 +485,7 @@ export function DashboardPage() {
               <div className="space-y-3">
                 <StatusItem status="online" label="Continental Network" />
                 <StatusItem status="online" label="Secure Communications" />
-                <StatusItem status="warning" label="Global Operations" />
+                <StatusItem status="warning" label="Location Services" />
               </div>
             </div>
           </div>
@@ -258,31 +537,31 @@ function AssassinStats({ data }: { data: AssassinDashboard }) {
     <>
       <StatCard
         icon={<Target className="h-6 w-6" />}
-        title="Misiones Asignadas"
+        title="Misiones Activas"
         value={data.activeMissions.length.toString()}
         subtitle={`${data.stats.missionsCompleted} completadas`}
         color="blue"
       />
       <StatCard
         icon={<Coins className="h-6 w-6" />}
-        title="Saldo Actual"
+        title="Monedas de Oro"
         value={formatCurrency(data.stats.goldCoins)}
-        subtitle="Monedas de Oro"
+        subtitle={`Tasa de éxito: ${data.stats.successRate}%`}
         color="gold"
       />
       <StatCard
-        icon={<BarChart3 className="h-6 w-6" />}
-        title="Tasa de Éxito"
-        value={`${data.stats.successRate}%`}
-        subtitle="Misiones completadas"
-        color="green"
+        icon={<Skull className="h-6 w-6" />}
+        title="Mis Deudas"
+        value={data.stats.bloodMarkersOwed.toString()}
+        subtitle="Marcadores pendientes"
+        color="yellow"
       />
       <StatCard
-        icon={<User className="h-6 w-6" />}
-        title="Blood Markers"
-        value={data.stats.bloodMarkersOwed.toString()}
-        subtitle="Deudas pendientes"
-        color="yellow"
+        icon={<TrendingUp className="h-6 w-6" />}
+        title="Me Deben"
+        value={data.stats.bloodMarkersOwing.toString()}
+        subtitle="Por confirmar"
+        color="green"
       />
     </>
   );
@@ -305,10 +584,16 @@ function AdminActivity({ data }: { data: AdminDashboard }) {
 }
 
 // Assassin Missions Component
-function AssassinMissions({ data }: { data: AssassinDashboard }) {
+function AssassinMissions({
+  data,
+  onNavigate,
+}: {
+  data: AssassinDashboard;
+  onNavigate: (path: string) => void;
+}) {
   return (
     <>
-      {data.activeMissions.map((mission) => (
+      {data.activeMissions.slice(0, 3).map((mission) => (
         <MissionItem
           key={mission.id}
           title={mission.title}
@@ -324,8 +609,60 @@ function AssassinMissions({ data }: { data: AssassinDashboard }) {
           <p>No tienes misiones activas</p>
         </div>
       )}
+      {data.activeMissions.length > 3 && (
+        <div className="text-center pt-4">
+          <button
+            onClick={() => onNavigate("/missions")}
+            className="text-sm text-gold-400 hover:text-gold-300 transition-colors flex items-center justify-center space-x-1"
+          >
+            <span>Ver todas las misiones ({data.activeMissions.length})</span>
+            <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
+      )}
     </>
   );
+}
+
+// Assassin Activity Component
+function AssassinActivity({ data }: { data: AssassinDashboard }) {
+  return (
+    <>
+      {data.recentActivity.slice(0, 5).map((activity) => (
+        <ActivityItem
+          key={activity.id}
+          title={activity.message}
+          subtitle={getActivityTypeLabel(activity.type)}
+          time={formatDate(activity.timestamp)}
+        />
+      ))}
+      {data.recentActivity.length === 0 && (
+        <div className="text-center py-8 text-orden-400">
+          <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>No hay actividad reciente</p>
+        </div>
+      )}
+    </>
+  );
+}
+
+function getActivityTypeLabel(type: string): string {
+  switch (type) {
+    case "mission_assigned":
+      return "Misión asignada";
+    case "mission_completed":
+      return "Misión completada";
+    case "mission_failed":
+      return "Misión fallida";
+    case "debt_created":
+      return "Marcador creado";
+    case "debt_paid":
+      return "Deuda saldada";
+    case "profile_updated":
+      return "Perfil actualizado";
+    default:
+      return "Actividad del sistema";
+  }
 }
 
 function StatCard({
@@ -409,9 +746,15 @@ function MissionItem({
         return "text-blue-400 bg-blue-500/20";
       case "completada":
         return "text-green-400 bg-green-500/20";
+      case "fallida":
+        return "text-red-400 bg-red-500/20";
       default:
         return "text-orden-400 bg-orden-700/50";
     }
+  };
+
+  const canProgressMission = (status: string) => {
+    return status === "Asignada";
   };
 
   return (
@@ -422,13 +765,15 @@ function MissionItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-2">
           <h4 className="text-sm font-medium text-orden-200">{title}</h4>
-          <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-              status
-            )}`}
-          >
-            {status}
-          </span>
+          <div className="flex items-center space-x-2">
+            <span
+              className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                status
+              )}`}
+            >
+              {status}
+            </span>
+          </div>
         </div>
         <p className="text-xs text-orden-400 mb-2">{target}</p>
         <div className="flex items-center justify-between text-xs">
@@ -438,6 +783,13 @@ function MissionItem({
             {deadline}
           </div>
         </div>
+        {canProgressMission(status) && (
+          <div className="mt-3 pt-3 border-t border-orden-700">
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-xs">
+              Iniciar Misión
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -479,6 +831,111 @@ function StatusItem({
             ? "Alerta"
             : "Inactivo"}
         </span>
+      </div>
+    </div>
+  );
+}
+
+function BloodMarkerItem({
+  marker,
+  isCreditor,
+  assassins,
+  onPayMarker,
+  onConfirmPayment,
+  isLoading,
+}: {
+  marker: BloodMarker;
+  isCreditor: boolean;
+  assassins: Assassin[];
+  onPayMarker: (id: string) => void;
+  onConfirmPayment: (id: string) => void;
+  isLoading: boolean;
+}) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Pendiente":
+        return isCreditor ? "text-gold-400" : "text-red-400";
+      case "Pago Pendiente de Confirmación":
+        return "text-yellow-400";
+      case "Saldado":
+        return "text-green-400";
+      default:
+        return "text-orden-400";
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "Pendiente":
+        return <Clock className="h-4 w-4" />;
+      case "Pago Pendiente de Confirmación":
+        return <AlertTriangle className="h-4 w-4" />;
+      case "Saldado":
+        return <CheckCircle className="h-4 w-4" />;
+      default:
+        return <Clock className="h-4 w-4" />;
+    }
+  };
+
+  const getOtherPartyName = () => {
+    const otherPartyId = isCreditor ? marker.debtorId : marker.creditorId;
+    const otherParty = assassins.find((a) => a.id === otherPartyId);
+    return otherParty?.alias || "Desconocido";
+  };
+
+  return (
+    <div className="bg-orden-800/50 rounded-lg p-4 border border-orden-700">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex-1">
+          <p className="text-sm text-orden-200 line-clamp-2 mb-1">
+            {marker.description}
+          </p>
+          <p className="text-xs text-orden-400">
+            {isCreditor ? "Deudor: " : "Acreedor: "}
+            {getOtherPartyName()}
+          </p>
+        </div>
+        <div
+          className={`flex items-center space-x-1 ${getStatusColor(
+            marker.status
+          )}`}
+        >
+          {getStatusIcon(marker.status)}
+          <span className="text-xs font-medium">{marker.status}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-orden-400">
+        <div className="flex items-center space-x-1">
+          <Calendar className="h-3 w-3" />
+          <span>{formatDate(marker.createdAt)}</span>
+        </div>
+
+        {marker.status === "Pendiente" && (
+          <Button
+            size="sm"
+            variant={isCreditor ? "secondary" : "danger"}
+            className="h-6 px-2 text-xs"
+            onClick={() => onPayMarker(marker.id)}
+            disabled={isLoading}
+          >
+            {isCreditor ? "Recordar" : "Pagar"}
+            <ArrowRight className="h-3 w-3 ml-1" />
+          </Button>
+        )}
+
+        {marker.status === "Pago Pendiente de Confirmación" && isCreditor && (
+          <Button
+            size="sm"
+            variant="primary"
+            className="h-6 px-2 text-xs"
+            onClick={() => onConfirmPayment(marker.id)}
+            disabled={isLoading}
+          >
+            Confirmar
+            <CheckCircle className="h-3 w-3 ml-1" />
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import React from "react";
 import { AssassinStats } from "./AssassinStats";
 import { AssassinMissions } from "./AssassinMissions";
+import { AvailableMissionsSection } from "./AvailableMissionsSection";
 import { ActivityFeed } from "./ActivityFeed";
 import { QuickActions } from "./QuickActions";
 import { SystemStatus } from "./SystemStatus";
@@ -50,6 +51,9 @@ export const AssassinDashboard = React.memo(function AssassinDashboard({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Primary Content */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Available Missions Section */}
+          <AvailableMissionsSection onNavigate={navigateTo} />
+
           <div className="card p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-orden-100">

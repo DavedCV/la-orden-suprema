@@ -489,6 +489,96 @@ class ApiService {
   }
 
   // Missions
+  async getAvailableMissions(): Promise<ApiResponse<Mission[]>> {
+    // Mock implementation for available missions (status "No Asignada")
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const allMissions = [
+      {
+        id: "mission-003",
+        title: "Protección Continental",
+        targetName: "Marcus Kane",
+        description: "Eliminar al asesino rogue que amenaza la neutralidad del Continental Hotel.",
+        reward: 7500,
+        deadline: "2024-02-10T23:59:59Z",
+        status: "No Asignada",
+        priority: "high",
+        createdAt: "2024-01-28T15:20:00Z",
+        updatedAt: "2024-01-28T15:20:00Z",
+      },
+      {
+        id: "mission-004",
+        title: "Limpieza de Evidencia",
+        targetName: "Detective Rodriguez",
+        description: "Eliminar al detective que está investigando las operaciones de La Orden.",
+        reward: 4000,
+        deadline: "2024-02-25T23:59:59Z",
+        status: "No Asignada",
+        priority: "medium",
+        createdAt: "2024-01-30T11:45:00Z",
+        updatedAt: "2024-01-30T11:45:00Z",
+      },
+      {
+        id: "mission-007",
+        title: "Infiltración de Gala",
+        targetName: "Victoria Sterling",
+        description: "Eliminar a la empresaria corrupta durante la gala benéfica anual.",
+        reward: 6000,
+        deadline: "2024-02-15T23:59:59Z",
+        status: "No Asignada",
+        priority: "high",
+        createdAt: "2024-01-31T09:15:00Z",
+        updatedAt: "2024-01-31T09:15:00Z",
+      },
+      {
+        id: "mission-008",
+        title: "Recuperación de Documentos",
+        targetName: "Dr. Hassan",
+        description: "Obtener documentos clasificados del laboratorio sin eliminar al científico.",
+        reward: 3500,
+        deadline: "2024-02-20T23:59:59Z",
+        status: "No Asignada",
+        priority: "medium",
+        createdAt: "2024-02-01T14:30:00Z",
+        updatedAt: "2024-02-01T14:30:00Z",
+      },
+      {
+        id: "mission-009",
+        title: "Vigilancia Nocturna",
+        targetName: "Alexei Volkov",
+        description: "Eliminar al traficante de armas en sus operaciones nocturnas en el puerto.",
+        reward: 4500,
+        deadline: "2024-02-12T23:59:59Z",
+        status: "No Asignada",
+        priority: "low",
+        createdAt: "2024-02-02T08:45:00Z",
+        updatedAt: "2024-02-02T08:45:00Z",
+      }
+    ] as Mission[];
+
+    return {
+      success: true,
+      data: allMissions,
+    };
+  }
+
+  async applyToMission(missionId: string): Promise<ApiResponse<void>> {
+    // Mock implementation for applying to missions
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    console.log(`Applying to mission ${missionId}`);
+
+    // In a real implementation, this would:
+    // 1. Create an application record
+    // 2. Notify administrators
+    // 3. Update mission status if needed
+
+    return {
+      success: true,
+      message: 'Postulación enviada exitosamente. El administrador revisará tu solicitud.',
+    };
+  }
+
   async getMissions(page = 1, limit = 10): Promise<PaginatedResponse<Mission>> {
     // Mock implementation for now
     await new Promise(resolve => setTimeout(resolve, 500));

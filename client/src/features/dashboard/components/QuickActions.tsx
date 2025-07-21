@@ -54,6 +54,11 @@ export function QuickActions({ role }: QuickActionsProps) {
     },
     {
       icon: Target,
+      label: "Misiones Disponibles",
+      path: "/available-missions",
+    },
+    {
+      icon: Target,
       label: "Mis Misiones",
       path: "/my-missions",
     },

@@ -1,3 +1,4 @@
+export { AvailableMissionsPage } from "./AvailableMissionsPage";
 export { CreateMissionForm } from "./CreateMissionForm";
 export { MissionCard } from "./MissionCard";
 export { MissionDetailsModal } from "./MissionDetailsModal";

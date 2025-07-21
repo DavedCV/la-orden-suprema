@@ -13,7 +13,10 @@ import {
   LocationMapPage,
   AssassinMissionsPage,
 } from "../../features/assassins/components";
-import { MissionManagementPage } from "../../features/missions/components";
+import {
+  MissionManagementPage,
+  AvailableMissionsPage,
+} from "../../features/missions/components";
 import { BloodMarkersPage } from "../../features/blood-markers/components";
 import { ReportsPage } from "../../features/reports/components";
 import { useState, useEffect } from "react";
@@ -121,6 +124,14 @@ export function Router() {
         />
 
         {/* Assassin-only routes */}
+        <Route
+          path="/available-missions"
+          element={
+            <ProtectedRoute allowedRoles={["assassin"]}>
+              <AvailableMissionsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/directory"
           element={

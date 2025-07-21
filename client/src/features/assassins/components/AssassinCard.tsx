@@ -1,196 +1,167 @@
+import { memo } from "react";
 import {
   Shield,
   ShieldOff,
   UserX,
+  Skull,
+  TrendingUp,
   Eye,
-  Coins,
-  Target,
-  Calendar,
-  MapPin,
-  Mail,
+  MessageCircle,
+  Clock,
   User,
 } from "lucide-react";
 import { Button } from "../../../shared/components/Button";
-import { formatCurrency, formatDate } from "../../../shared/utils";
-import type { Assassin, AsassinStatus } from "../../../shared/types";
+import type {
+  Assassin,
+  BloodMarker,
+  AsassinStatus,
+} from "../../../shared/types";
 
 interface AssassinCardProps {
   assassin: Assassin;
-  onStatusChange: (id: string, status: AsassinStatus) => void;
-  onViewDetails: (assassin: Assassin) => void;
+  relationship?: {
+    owedByMe: number;
+    owedToMe: number;
+    markers: BloodMarker[];
+    total: number;
+  } | null;
+  onViewDetails: (() => void) | ((assassin: Assassin) => void);
+  // Backward compatibility props
+  onStatusChange?: (id: string, status: AsassinStatus) => void;
+  isUpdating?: boolean;
 }
 
-function getStatusColor(status: AsassinStatus) {
-  switch (status) {
-    case "Activo":
-      return "text-green-400 bg-green-400/10 border-green-400/20";
-    case "Retirado":
-      return "text-yellow-400 bg-yellow-400/10 border-yellow-400/20";
-    case "Excommunicado":
-      return "text-red-400 bg-red-400/10 border-red-400/20";
-    default:
-      return "text-orden-400 bg-orden-400/10 border-orden-400/20";
-  }
-}
-
-function getStatusIcon(status: AsassinStatus) {
-  switch (status) {
-    case "Activo":
-      return <Shield className="h-4 w-4" />;
-    case "Retirado":
-      return <ShieldOff className="h-4 w-4" />;
-    case "Excommunicado":
-      return <UserX className="h-4 w-4" />;
-    default:
-      return <Shield className="h-4 w-4" />;
-  }
-}
-
-export function AssassinCard({
+export const AssassinCard = memo(function AssassinCard({
   assassin,
-  onStatusChange,
+  relationship,
   onViewDetails,
+  isUpdating = false,
 }: AssassinCardProps) {
+  const handleViewDetails = () => {
+    if (onViewDetails.length === 0) {
+      // No parameters expected
+      (onViewDetails as () => void)();
+    } else {
+      // Assassin parameter expected
+      (onViewDetails as (assassin: Assassin) => void)(assassin);
+    }
+  };
+  const getStatusIcon = (status: AsassinStatus) => {
+    switch (status) {
+      case "Activo":
+        return <Shield className="h-4 w-4 text-green-400" />;
+      case "Retirado":
+        return <ShieldOff className="h-4 w-4 text-yellow-400" />;
+      case "Excommunicado":
+        return <UserX className="h-4 w-4 text-red-400" />;
+      default:
+        return <User className="h-4 w-4 text-orden-400" />;
+    }
+  };
+
+  const getStatusColor = (status: AsassinStatus) => {
+    switch (status) {
+      case "Activo":
+        return "text-green-400 bg-green-500/20 border-green-500/30";
+      case "Retirado":
+        return "text-yellow-400 bg-yellow-500/20 border-yellow-500/30";
+      case "Excommunicado":
+        return "text-red-400 bg-red-500/20 border-red-500/30";
+      default:
+        return "text-orden-400 bg-orden-700/50 border-orden-600/30";
+    }
+  };
+
   return (
-    <div className="bg-orden-800 rounded-lg p-6 border border-orden-700 hover:border-orden-600 transition-colors">
+    <div className="bg-orden-800 rounded-lg p-6 border border-orden-700 hover:border-purple-500/50 transition-colors">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="bg-gold-500/20 p-2 rounded-lg">
-            <User className="h-5 w-5 text-gold-400" />
+          <div className="bg-purple-500/20 p-2 rounded-full">
+            <User className="h-5 w-5 text-purple-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-orden-100">
               {assassin.alias}
             </h3>
-            <p className="text-sm text-orden-400">
-              {assassin.realName || "Nombre no especificado"}
-            </p>
+            <div
+              className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                assassin.status
+              )}`}
+            >
+              {getStatusIcon(assassin.status)}
+              <span>{assassin.status}</span>
+            </div>
           </div>
-        </div>
-        <div
-          className={`px-2 py-1 rounded-full text-xs font-medium border flex items-center space-x-1 ${getStatusColor(
-            assassin.status
-          )}`}
-        >
-          {getStatusIcon(assassin.status)}
-          <span>{assassin.status}</span>
-        </div>
-      </div>
-
-      {/* Contact Info */}
-      <div className="space-y-2 mb-4">
-        <div className="flex items-center text-sm text-orden-300">
-          <Mail className="h-4 w-4 mr-2 text-orden-400" />
-          {assassin.email}
-        </div>
-        {assassin.lastKnownLocation && (
-          <div className="flex items-center text-sm text-orden-300">
-            <MapPin className="h-4 w-4 mr-2 text-orden-400" />
-            {assassin.lastKnownLocation}
-          </div>
-        )}
-        <div className="flex items-center text-sm text-orden-300">
-          <Calendar className="h-4 w-4 mr-2 text-orden-400" />
-          Miembro desde {formatDate(assassin.joinDate)}
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="bg-orden-900/50 rounded-lg p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Coins className="h-4 w-4 text-gold-400 mr-2" />
-              <span className="text-xs text-orden-400">Monedas</span>
-            </div>
-            <span className="text-sm font-medium text-gold-400">
-              {formatCurrency(assassin.goldCoins)}
-            </span>
+        <div className="text-center">
+          <div className="text-lg font-bold text-orden-200">
+            {assassin.completedMissions}
           </div>
+          <div className="text-xs text-orden-400">Misiones</div>
         </div>
-        <div className="bg-orden-900/50 rounded-lg p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Target className="h-4 w-4 text-green-400 mr-2" />
-              <span className="text-xs text-orden-400">Misiones</span>
-            </div>
-            <span className="text-sm font-medium text-green-400">
-              {assassin.completedMissions}
-            </span>
+        <div className="text-center">
+          <div className="text-lg font-bold text-gold-400">
+            {Math.floor(assassin.goldCoins / 1000)}K
           </div>
+          <div className="text-xs text-orden-400">Monedas</div>
         </div>
       </div>
 
-      {/* Skills */}
-      {assassin.skills && assassin.skills.length > 0 && (
-        <div className="mb-4">
-          <p className="text-xs text-orden-400 mb-2">Habilidades:</p>
-          <div className="flex flex-wrap gap-1">
-            {assassin.skills.slice(0, 3).map((skill, index) => (
-              <span
-                key={index}
-                className="px-2 py-1 bg-orden-700 text-orden-300 text-xs rounded"
-              >
-                {skill}
-              </span>
-            ))}
-            {assassin.skills.length > 3 && (
-              <span className="px-2 py-1 bg-orden-700 text-orden-400 text-xs rounded">
-                +{assassin.skills.length - 3} más
-              </span>
+      {/* Relationship Status */}
+      {relationship && (
+        <div className="bg-orden-900/50 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-orden-300">
+              Marcadores de Sangre
+            </span>
+            <Skull className="h-4 w-4 text-red-400" />
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {relationship.owedByMe > 0 && (
+              <div className="flex items-center space-x-1 text-red-400">
+                <Clock className="h-3 w-3" />
+                <span>Debo: {relationship.owedByMe}</span>
+              </div>
+            )}
+            {relationship.owedToMe > 0 && (
+              <div className="flex items-center space-x-1 text-gold-400">
+                <TrendingUp className="h-3 w-3" />
+                <span>Me debe: {relationship.owedToMe}</span>
+              </div>
             )}
           </div>
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex justify-between items-center">
-        <div className="flex space-x-2">
-          {assassin.status === "Activo" && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onStatusChange(assassin.id, "Retirado")}
-              className="text-yellow-400 hover:text-yellow-300"
-            >
-              <ShieldOff className="h-3 w-3 mr-1" />
-              Retirar
-            </Button>
-          )}
-          {assassin.status === "Retirado" && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onStatusChange(assassin.id, "Activo")}
-              className="text-green-400 hover:text-green-300"
-            >
-              <Shield className="h-3 w-3 mr-1" />
-              Activar
-            </Button>
-          )}
-          {assassin.status !== "Excommunicado" && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onStatusChange(assassin.id, "Excommunicado")}
-              className="text-red-400 hover:text-red-300"
-            >
-              <UserX className="h-3 w-3 mr-1" />
-              Excomulgar
-            </Button>
-          )}
-        </div>
+      <div className="flex space-x-2">
         <Button
-          variant="ghost"
+          variant="secondary"
           size="sm"
-          onClick={() => onViewDetails(assassin)}
-          className="text-orden-300 hover:text-orden-100"
+          onClick={handleViewDetails}
+          className="flex-1"
+          aria-label={`Ver detalles de ${assassin.alias}`}
+          disabled={isUpdating}
         >
-          <Eye className="h-4 w-4 mr-1" />
+          <Eye className="h-4 w-4 mr-2" />
           Ver Detalles
         </Button>
+        {assassin.status === "Activo" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-purple-400 hover:text-purple-300"
+            aria-label={`Contactar a ${assassin.alias}`}
+          >
+            <MessageCircle className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );
-}
+});

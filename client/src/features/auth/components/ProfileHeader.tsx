@@ -1,118 +1,210 @@
-import { Edit3, Shield, Crown, UserIcon } from "lucide-react";
+import React from "react";
+import { Edit3, Save, X, Lock } from "lucide-react";
 import { Button } from "../../../shared/components/Button";
-import type { User, Assassin } from "../../../shared/types";
+import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
 
 interface ProfileHeaderProps {
-  profile: User | Assassin;
   isEditing: boolean;
-  onEditToggle: () => void;
+  userRole?: string;
+  onEdit: () => void;
+  onSave: () => void;
+  onCancel: () => void;
   onPasswordChange: () => void;
+  onBackToDashboard: () => void;
+  isSaving?: boolean;
 }
 
-// Type guard to check if profile is an Assassin
-function isAssassin(profile: User | Assassin): profile is Assassin {
-  return "status" in profile && "goldCoins" in profile;
-}
-
-function getStatusColor(status: string) {
-  switch (status) {
-    case "Activo":
-      return "text-green-400 bg-green-400/10 border-green-400/20";
-    case "Retirado":
-      return "text-yellow-400 bg-yellow-400/10 border-yellow-400/20";
-    case "Excommunicado":
-      return "text-red-400 bg-red-400/10 border-red-400/20";
-    default:
-      return "text-orden-400 bg-orden-400/10 border-orden-400/20";
-  }
-}
-
-export function ProfileHeader({
-  profile,
+export const ProfileHeader = React.memo(function ProfileHeader({
   isEditing,
-  onEditToggle,
+  userRole,
+  onEdit,
+  onSave,
+  onCancel,
   onPasswordChange,
+  onBackToDashboard,
+  isSaving = false,
 }: ProfileHeaderProps) {
-  const isUserAssassin = isAssassin(profile);
-
   return (
     <div className="bg-orden-800 border-b border-orden-700">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
+        {/* Mobile Layout */}
+        <div className="block sm:hidden">
+          {/* Navigation and Title */}
+          <div className="flex items-center space-x-3 mb-4">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                window.history.pushState(null, "", "/");
-                window.location.reload();
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                try {
+                  onBackToDashboard();
+                } catch (error) {
+                  console.error("Navigation error:", error);
+                  window.location.href = "/dashboard";
+                }
+              }}
+              className="text-orden-400 hover:text-orden-200"
+            >
+              ← Volver
+            </Button>
+
+            <div className="flex-1">
+              <h1 className="text-lg font-bold text-orden-100">
+                Mi Perfil
+                {userRole === "admin" && (
+                  <span className="block text-sm font-normal text-gold-400 mt-1">
+                    Administrador
+                  </span>
+                )}
+              </h1>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col space-y-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onPasswordChange}
+              className="w-full justify-center"
+            >
+              <Lock className="h-4 w-4 mr-2" />
+              Cambiar Contraseña
+            </Button>
+
+            {!isEditing ? (
+              <Button
+                onClick={onEdit}
+                className="bg-gold-500 hover:bg-gold-600 text-orden-900 w-full justify-center"
+              >
+                <Edit3 className="h-4 w-4 mr-2" />
+                Editar Perfil
+              </Button>
+            ) : (
+              <div className="flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onCancel}
+                  className="flex-1 justify-center"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={onSave}
+                  disabled={isSaving}
+                  className="bg-gold-500 hover:bg-gold-600 text-orden-900 flex-1 justify-center"
+                >
+                  {isSaving ? (
+                    <LoadingSpinner size="sm" className="mr-2" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Guardar
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden sm:flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            {/* Navigation Button with multiple fallback strategies */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                try {
+                  onBackToDashboard();
+                } catch (error) {
+                  console.error("Navigation error:", error);
+                  // Fallback navigation
+                  window.location.href = "/dashboard";
+                }
               }}
               className="text-orden-400 hover:text-orden-200"
             >
               ← Volver al Dashboard
             </Button>
+
             <div>
               <h1 className="text-2xl font-bold text-orden-100 flex items-center">
-                <UserIcon className="h-6 w-6 mr-3 text-gold-400" />
                 Mi Perfil
+                {userRole === "admin" && (
+                  <span className="ml-2 text-sm font-normal text-gold-400">
+                    - Administrador
+                  </span>
+                )}
               </h1>
               <p className="text-orden-300 mt-1">
-                Gestiona tu información personal y configuración
+                {userRole === "admin"
+                  ? "Gestiona tu información de administrador"
+                  : "Gestiona tu información personal"}
               </p>
             </div>
           </div>
-          <div className="flex space-x-3">
+
+          <div className="flex items-center space-x-3">
             <Button
               variant="secondary"
               size="sm"
               onClick={onPasswordChange}
-              className="flex items-center"
+              className="hidden lg:flex"
             >
-              <Shield className="h-4 w-4 mr-2" />
+              <Lock className="h-4 w-4 mr-2" />
               Cambiar Contraseña
             </Button>
-            <Button
-              variant={isEditing ? "ghost" : "primary"}
-              size="sm"
-              onClick={onEditToggle}
-              className="flex items-center"
-            >
-              <Edit3 className="h-4 w-4 mr-2" />
-              {isEditing ? "Cancelar" : "Editar Perfil"}
-            </Button>
-          </div>
-        </div>
 
-        {/* Profile Summary */}
-        <div className="mt-6 bg-orden-900/50 rounded-lg p-6">
-          <div className="flex items-center space-x-4">
-            <div className="bg-gold-500/20 p-3 rounded-lg">
-              <Crown className="h-8 w-8 text-gold-400" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-orden-100">
-                {profile.alias}
-              </h2>
-              <p className="text-orden-400">{profile.email}</p>
-              {isUserAssassin && (
-                <div className="flex items-center space-x-3 mt-2">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                      profile.status
-                    )}`}
-                  >
-                    {profile.status}
-                  </span>
-                  <span className="text-sm text-orden-300">
-                    Rol:{" "}
-                    {profile.role === "admin" ? "Administrador" : "Asesino"}
-                  </span>
-                </div>
-              )}
-            </div>
+            {/* Password button for medium screens */}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onPasswordChange}
+              className="lg:hidden"
+              title="Cambiar Contraseña"
+            >
+              <Lock className="h-4 w-4" />
+            </Button>
+
+            {!isEditing ? (
+              <Button
+                onClick={onEdit}
+                className="bg-gold-500 hover:bg-gold-600 text-orden-900"
+              >
+                <Edit3 className="h-4 w-4 mr-2" />
+                <span className="hidden md:inline">Editar Perfil</span>
+                <span className="md:hidden">Editar</span>
+              </Button>
+            ) : (
+              <div className="flex space-x-2">
+                <Button variant="ghost" size="sm" onClick={onCancel}>
+                  <X className="h-4 w-4 mr-2" />
+                  <span className="hidden md:inline">Cancelar</span>
+                </Button>
+                <Button
+                  onClick={onSave}
+                  disabled={isSaving}
+                  className="bg-gold-500 hover:bg-gold-600 text-orden-900"
+                >
+                  {isSaving ? (
+                    <LoadingSpinner size="sm" className="mr-2" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  <span className="hidden md:inline">Guardar</span>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { LoadingSpinner } from "./LoadingSpinner";
 import {
@@ -13,83 +13,43 @@ import {
   LocationMapPage,
   AssassinMissionsPage,
 } from "../../features/assassins/components";
-import { MissionManagementPage } from "../../features/missions/components";
+import {
+  MissionManagementPage,
+  AvailableMissionsPage,
+} from "../../features/missions/components";
 import { BloodMarkersPage } from "../../features/blood-markers/components";
 import { ReportsPage } from "../../features/reports/components";
+import { useState, useEffect } from "react";
 
-type Route =
-  | "dashboard"
-  | "assassins"
-  | "missions"
-  | "profile"
-  | "blood-markers"
-  | "directory"
-  | "map"
-  | "reports"
-  | "my-missions";
+// Route protection wrapper
+function ProtectedRoute({
+  children,
+  allowedRoles,
+  redirectTo = "/dashboard",
+}: {
+  children: React.ReactNode;
+  allowedRoles?: string[];
+  redirectTo?: string;
+}) {
+  const { user } = useAuthStore();
 
-export function Router() {
+  if (allowedRoles && !allowedRoles.includes(user?.role || "")) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Authentication wrapper
+function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuthStore();
-  const [currentRoute, setCurrentRoute] = useState<Route>("dashboard");
   const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
 
-  // Check for first login
   useEffect(() => {
     if (isAuthenticated && user?.isFirstLogin) {
       setShowFirstLoginModal(true);
     }
   }, [isAuthenticated, user]);
-
-  // Simple client-side routing
-  useEffect(() => {
-    const path = window.location.pathname;
-    if (path === "/assassins") {
-      setCurrentRoute("assassins");
-    } else if (path === "/missions") {
-      setCurrentRoute("missions");
-    } else if (path === "/profile") {
-      setCurrentRoute("profile");
-    } else if (path === "/blood-markers") {
-      setCurrentRoute("blood-markers");
-    } else if (path === "/directory") {
-      setCurrentRoute("directory");
-    } else if (path === "/map") {
-      setCurrentRoute("map");
-    } else if (path === "/reports") {
-      setCurrentRoute("reports");
-    } else if (path === "/my-missions") {
-      setCurrentRoute("my-missions");
-    } else {
-      setCurrentRoute("dashboard");
-    }
-
-    // Listen for navigation changes
-    const handlePopState = () => {
-      const newPath = window.location.pathname;
-      if (newPath === "/assassins") {
-        setCurrentRoute("assassins");
-      } else if (newPath === "/missions") {
-        setCurrentRoute("missions");
-      } else if (newPath === "/profile") {
-        setCurrentRoute("profile");
-      } else if (newPath === "/blood-markers") {
-        setCurrentRoute("blood-markers");
-      } else if (newPath === "/directory") {
-        setCurrentRoute("directory");
-      } else if (newPath === "/map") {
-        setCurrentRoute("map");
-      } else if (newPath === "/reports") {
-        setCurrentRoute("reports");
-      } else if (newPath === "/my-missions") {
-        setCurrentRoute("my-missions");
-      } else {
-        setCurrentRoute("dashboard");
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
 
   if (isLoading) {
     return (
@@ -106,67 +66,100 @@ export function Router() {
     return <LoginPage />;
   }
 
-  // Show first login modal if needed
-  if (showFirstLoginModal) {
-    return (
-      <>
-        <DashboardPage />
+  return (
+    <>
+      {children}
+      {showFirstLoginModal && (
         <FirstLoginModal
-          onPasswordChanged={() => {
-            setShowFirstLoginModal(false);
-            // Update user state to remove first login flag
-            // In real app, this would update the backend
-          }}
+          onPasswordChanged={() => setShowFirstLoginModal(false)}
         />
-      </>
-    );
-  }
+      )}
+    </>
+  );
+}
 
-  // Route protection - only admins can access certain pages
-  if (currentRoute === "assassins" && user?.role !== "admin") {
-    return <DashboardPage />;
-  }
+export function Router() {
+  return (
+    <AuthGuard>
+      <Routes>
+        {/* Default route */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-  if (currentRoute === "missions" && user?.role !== "admin") {
-    return <DashboardPage />;
-  }
+        {/* Public routes (accessible to all authenticated users) */}
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
 
-  if (currentRoute === "map" && user?.role !== "admin") {
-    return <DashboardPage />;
-  }
+        {/* Admin-only routes */}
+        <Route
+          path="/assassins"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AssassinManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/missions"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <MissionManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/map"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <LocationMapPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <ReportsPage />
+            </ProtectedRoute>
+          }
+        />
 
-  if (currentRoute === "reports" && user?.role !== "admin") {
-    return <DashboardPage />;
-  }
+        {/* Assassin-only routes */}
+        <Route
+          path="/available-missions"
+          element={
+            <ProtectedRoute allowedRoles={["assassin"]}>
+              <AvailableMissionsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/directory"
+          element={
+            <ProtectedRoute allowedRoles={["assassin"]}>
+              <AssassinDirectoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/blood-markers"
+          element={
+            <ProtectedRoute allowedRoles={["assassin"]}>
+              <BloodMarkersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-missions"
+          element={
+            <ProtectedRoute allowedRoles={["assassin"]}>
+              <AssassinMissionsPage />
+            </ProtectedRoute>
+          }
+        />
 
-  // Directory, blood-markers and my-missions are accessible to assassins only
-  if (
-    (currentRoute === "directory" ||
-      currentRoute === "blood-markers" ||
-      currentRoute === "my-missions") &&
-    user?.role !== "assassin"
-  ) {
-    return <DashboardPage />;
-  }
-
-  switch (currentRoute) {
-    case "assassins":
-      return <AssassinManagementPage />;
-    case "missions":
-      return <MissionManagementPage />;
-    case "profile":
-      return <ProfilePage />;
-    case "blood-markers":
-      return <BloodMarkersPage />;
-    case "directory":
-      return <AssassinDirectoryPage />;
-    case "map":
-      return <LocationMapPage />;
-    case "reports":
-      return <ReportsPage />;
-    case "my-missions":
-      return <AssassinMissionsPage />;
-    default:
-      return <DashboardPage />;
-  }
+        {/* Fallback route */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </AuthGuard>
+  );
 }

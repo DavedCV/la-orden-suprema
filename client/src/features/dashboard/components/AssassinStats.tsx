@@ -1,5 +1,6 @@
-import { Coins, Target, CheckCircle, TrendingUp } from "lucide-react";
+import React from "react";
 import { StatCard } from "./StatCard";
+import { Target, Coins, Skull, TrendingUp } from "lucide-react";
 import { formatCurrency } from "../../../shared/utils";
 import type { AssassinDashboard } from "../../../shared/types";
 
@@ -7,37 +8,39 @@ interface AssassinStatsProps {
   data: AssassinDashboard;
 }
 
-export function AssassinStats({ data }: AssassinStatsProps) {
+export const AssassinStats = React.memo(function AssassinStats({
+  data,
+}: AssassinStatsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <>
+      <StatCard
+        icon={<Target className="h-6 w-6" />}
+        title="Misiones Activas"
+        value={data.activeMissions.length.toString()}
+        subtitle={`${data.stats.missionsCompleted} completadas`}
+        color="blue"
+      />
       <StatCard
         icon={<Coins className="h-6 w-6" />}
         title="Monedas de Oro"
         value={formatCurrency(data.stats.goldCoins)}
-        subtitle="Balance actual"
+        subtitle={`Tasa de éxito: ${data.stats.successRate}%`}
         color="gold"
       />
       <StatCard
-        icon={<Target className="h-6 w-6" />}
-        title="Misiones Activas"
-        value="0"
-        subtitle="En progreso"
+        icon={<Skull className="h-6 w-6" />}
+        title="Mis Deudas"
+        value={data.stats.bloodMarkersOwed.toString()}
+        subtitle="Marcadores pendientes"
         color="yellow"
       />
       <StatCard
-        icon={<CheckCircle className="h-6 w-6" />}
-        title="Misiones Completadas"
-        value={data.stats.missionsCompleted.toString()}
-        subtitle="Total"
+        icon={<TrendingUp className="h-6 w-6" />}
+        title="Me Deben"
+        value={data.stats.bloodMarkersOwing.toString()}
+        subtitle="Por confirmar"
         color="green"
       />
-      <StatCard
-        icon={<TrendingUp className="h-6 w-6" />}
-        title="Tasa de Éxito"
-        value={`${data.stats.successRate}%`}
-        subtitle="Rendimiento"
-        color="blue"
-      />
-    </div>
+    </>
   );
-}
+});

@@ -12,7 +12,8 @@ import type {
   BloodMarker,
   Assassin,
   PaginatedResponse,
-  AsassinStatus
+  AsassinStatus,
+  RespondToBloodMarkerForm
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -488,6 +489,96 @@ class ApiService {
   }
 
   // Missions
+  async getAvailableMissions(): Promise<ApiResponse<Mission[]>> {
+    // Mock implementation for available missions (status "No Asignada")
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const allMissions = [
+      {
+        id: "mission-003",
+        title: "Protección Continental",
+        targetName: "Marcus Kane",
+        description: "Eliminar al asesino rogue que amenaza la neutralidad del Continental Hotel.",
+        reward: 7500,
+        deadline: "2024-02-10T23:59:59Z",
+        status: "No Asignada",
+        priority: "high",
+        createdAt: "2024-01-28T15:20:00Z",
+        updatedAt: "2024-01-28T15:20:00Z",
+      },
+      {
+        id: "mission-004",
+        title: "Limpieza de Evidencia",
+        targetName: "Detective Rodriguez",
+        description: "Eliminar al detective que está investigando las operaciones de La Orden.",
+        reward: 4000,
+        deadline: "2024-02-25T23:59:59Z",
+        status: "No Asignada",
+        priority: "medium",
+        createdAt: "2024-01-30T11:45:00Z",
+        updatedAt: "2024-01-30T11:45:00Z",
+      },
+      {
+        id: "mission-007",
+        title: "Infiltración de Gala",
+        targetName: "Victoria Sterling",
+        description: "Eliminar a la empresaria corrupta durante la gala benéfica anual.",
+        reward: 6000,
+        deadline: "2024-02-15T23:59:59Z",
+        status: "No Asignada",
+        priority: "high",
+        createdAt: "2024-01-31T09:15:00Z",
+        updatedAt: "2024-01-31T09:15:00Z",
+      },
+      {
+        id: "mission-008",
+        title: "Recuperación de Documentos",
+        targetName: "Dr. Hassan",
+        description: "Obtener documentos clasificados del laboratorio sin eliminar al científico.",
+        reward: 3500,
+        deadline: "2024-02-20T23:59:59Z",
+        status: "No Asignada",
+        priority: "medium",
+        createdAt: "2024-02-01T14:30:00Z",
+        updatedAt: "2024-02-01T14:30:00Z",
+      },
+      {
+        id: "mission-009",
+        title: "Vigilancia Nocturna",
+        targetName: "Alexei Volkov",
+        description: "Eliminar al traficante de armas en sus operaciones nocturnas en el puerto.",
+        reward: 4500,
+        deadline: "2024-02-12T23:59:59Z",
+        status: "No Asignada",
+        priority: "low",
+        createdAt: "2024-02-02T08:45:00Z",
+        updatedAt: "2024-02-02T08:45:00Z",
+      }
+    ] as Mission[];
+
+    return {
+      success: true,
+      data: allMissions,
+    };
+  }
+
+  async applyToMission(missionId: string): Promise<ApiResponse<void>> {
+    // Mock implementation for applying to missions
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    console.log(`Applying to mission ${missionId}`);
+
+    // In a real implementation, this would:
+    // 1. Create an application record
+    // 2. Notify administrators
+    // 3. Update mission status if needed
+
+    return {
+      success: true,
+      message: 'Postulación enviada exitosamente. El administrador revisará tu solicitud.',
+    };
+  }
+
   async getMissions(page = 1, limit = 10): Promise<PaginatedResponse<Mission>> {
     // Mock implementation for now
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -705,7 +796,25 @@ class ApiService {
     await new Promise(resolve => setTimeout(resolve, 300));
 
     const mockBloodMarkers: BloodMarker[] = [
-      // Deudas que el asesino actual debe (él es el deudor)
+      // Solicitudes pendientes (nuevas)
+      {
+        id: "request-001",
+        debtorId: "assassin-001", // El asesino actual
+        creditorId: "assassin-005",
+        description: "Solicitud: Ayuda con extracción de emergencia durante misión fallida",
+        createdAt: "2024-01-28T14:20:00Z",
+        status: "Solicitud Pendiente",
+      },
+      // Solicitudes que el asesino actual ha enviado a otros
+      {
+        id: "request-002",
+        debtorId: "assassin-003",
+        creditorId: "assassin-001", // El asesino actual
+        description: "Solicitud: Información crucial proporcionada sobre ubicación de objetivo",
+        createdAt: "2024-01-27T10:15:00Z",
+        status: "Solicitud Pendiente",
+      },
+      // Deudas confirmadas (existentes)
       {
         id: "debt-001",
         debtorId: "assassin-001", // El asesino actual
@@ -731,6 +840,15 @@ class ApiService {
         createdAt: "2024-01-15T20:45:00Z",
         status: "Pago Pendiente de Confirmación",
         paidAt: "2024-01-22T14:20:00Z",
+      },
+      // Ejemplo de solicitud rechazada
+      {
+        id: "rejected-001",
+        debtorId: "assassin-001",
+        creditorId: "assassin-006",
+        description: "Solicitud rechazada: Supuesta ayuda con información incorrecta",
+        createdAt: "2024-01-25T08:30:00Z",
+        status: "Rechazada",
       }
     ];
 
@@ -745,18 +863,44 @@ class ApiService {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     const newBloodMarker: BloodMarker = {
-      id: `debt-${Date.now()}`,
+      id: `request-${Date.now()}`,
       debtorId: data.debtorId,
       creditorId: data.creditorId,
       description: data.description,
-      status: "Pendiente",
+      status: "Solicitud Pendiente", // Nueva solicitud requiere aceptación
       createdAt: new Date().toISOString(),
     };
 
     return {
       success: true,
       data: newBloodMarker,
-      message: 'Marcador de sangre creado exitosamente',
+      message: 'Solicitud de marcador de sangre enviada. Esperando respuesta del asesino solicitado.',
+    };
+  }
+
+  async respondToBloodMarkerRequest(data: RespondToBloodMarkerForm): Promise<ApiResponse<BloodMarker>> {
+    // Mock implementation for now
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    console.log(`Responding to blood marker request ${data.markerId}: ${data.accepted ? 'accepted' : 'rejected'}`);
+
+    const updatedMarker: BloodMarker = {
+      id: data.markerId,
+      debtorId: "assassin-001",
+      creditorId: "assassin-002",
+      description: data.accepted
+        ? "Solicitud aceptada: Favor confirmado por el deudor"
+        : `Solicitud rechazada: ${data.rejectionReason || 'Sin razón especificada'}`,
+      status: data.accepted ? "Pendiente" : "Rechazada",
+      createdAt: "2024-01-20T16:20:00Z",
+    };
+
+    return {
+      success: true,
+      data: updatedMarker,
+      message: data.accepted
+        ? 'Solicitud aceptada. El marcador de sangre está ahora activo.'
+        : 'Solicitud rechazada exitosamente.',
     };
   }
 

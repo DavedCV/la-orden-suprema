@@ -1,196 +1,176 @@
-import {
-  Shield,
-  ShieldOff,
-  UserX,
-  Eye,
-  Coins,
-  Target,
-  Calendar,
-  MapPin,
-  Mail,
-  User,
-} from "lucide-react";
+import React, { useMemo } from "react";
+import { Eye, Coins, Target } from "lucide-react";
 import { Button } from "../../../shared/components/Button";
-import { formatCurrency, formatDate } from "../../../shared/utils";
+import { formatCurrency } from "../../../shared/utils";
+import { getStatusColor, getStatusIcon, getStatusActions } from "../utils";
 import type { Assassin, AsassinStatus } from "../../../shared/types";
 
 interface AssassinCardProps {
   assassin: Assassin;
   onStatusChange: (id: string, status: AsassinStatus) => void;
   onViewDetails: (assassin: Assassin) => void;
+  isUpdating?: boolean;
 }
 
-function getStatusColor(status: AsassinStatus) {
-  switch (status) {
-    case "Activo":
-      return "text-green-400 bg-green-400/10 border-green-400/20";
-    case "Retirado":
-      return "text-yellow-400 bg-yellow-400/10 border-yellow-400/20";
-    case "Excommunicado":
-      return "text-red-400 bg-red-400/10 border-red-400/20";
-    default:
-      return "text-orden-400 bg-orden-400/10 border-orden-400/20";
-  }
-}
+export const AssassinCard: React.FC<AssassinCardProps> = React.memo(
+  ({ assassin, onStatusChange, onViewDetails, isUpdating = false }) => {
+    const StatusIcon = getStatusIcon(assassin.status);
+    const statusActions = getStatusActions(assassin.status);
 
-function getStatusIcon(status: AsassinStatus) {
-  switch (status) {
-    case "Activo":
-      return <Shield className="h-4 w-4" />;
-    case "Retirado":
-      return <ShieldOff className="h-4 w-4" />;
-    case "Excommunicado":
-      return <UserX className="h-4 w-4" />;
-    default:
-      return <Shield className="h-4 w-4" />;
-  }
-}
+    // Memoized values to prevent recalculation
+    const statusColorClass = useMemo(
+      () => getStatusColor(assassin.status),
+      [assassin.status]
+    );
+    const formattedGoldCoins = useMemo(
+      () => formatCurrency(assassin.goldCoins),
+      [assassin.goldCoins]
+    );
+    const avatarLetter = useMemo(
+      () => assassin.alias.charAt(0).toUpperCase(),
+      [assassin.alias]
+    );
 
-export function AssassinCard({
-  assassin,
-  onStatusChange,
-  onViewDetails,
-}: AssassinCardProps) {
-  return (
-    <div className="bg-orden-800 rounded-lg p-6 border border-orden-700 hover:border-orden-600 transition-colors">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="bg-gold-500/20 p-2 rounded-lg">
-            <User className="h-5 w-5 text-gold-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-orden-100">
-              {assassin.alias}
-            </h3>
-            <p className="text-sm text-orden-400">
-              {assassin.realName || "Nombre no especificado"}
-            </p>
-          </div>
-        </div>
-        <div
-          className={`px-2 py-1 rounded-full text-xs font-medium border flex items-center space-x-1 ${getStatusColor(
-            assassin.status
-          )}`}
-        >
-          {getStatusIcon(assassin.status)}
-          <span>{assassin.status}</span>
-        </div>
-      </div>
+    // Memoized skills display
+    const skillsDisplay = useMemo(() => {
+      if (!assassin.skills || assassin.skills.length === 0) return null;
 
-      {/* Contact Info */}
-      <div className="space-y-2 mb-4">
-        <div className="flex items-center text-sm text-orden-300">
-          <Mail className="h-4 w-4 mr-2 text-orden-400" />
-          {assassin.email}
-        </div>
-        {assassin.lastKnownLocation && (
-          <div className="flex items-center text-sm text-orden-300">
-            <MapPin className="h-4 w-4 mr-2 text-orden-400" />
-            {assassin.lastKnownLocation}
-          </div>
-        )}
-        <div className="flex items-center text-sm text-orden-300">
-          <Calendar className="h-4 w-4 mr-2 text-orden-400" />
-          Miembro desde {formatDate(assassin.joinDate)}
-        </div>
-      </div>
+      const visibleSkills = assassin.skills.slice(0, 5);
+      const remainingCount = assassin.skills.length - 5;
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="bg-orden-900/50 rounded-lg p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Coins className="h-4 w-4 text-gold-400 mr-2" />
-              <span className="text-xs text-orden-400">Monedas</span>
-            </div>
-            <span className="text-sm font-medium text-gold-400">
-              {formatCurrency(assassin.goldCoins)}
-            </span>
-          </div>
-        </div>
-        <div className="bg-orden-900/50 rounded-lg p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Target className="h-4 w-4 text-green-400 mr-2" />
-              <span className="text-xs text-orden-400">Misiones</span>
-            </div>
-            <span className="text-sm font-medium text-green-400">
-              {assassin.completedMissions}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Skills */}
-      {assassin.skills && assassin.skills.length > 0 && (
-        <div className="mb-4">
-          <p className="text-xs text-orden-400 mb-2">Habilidades:</p>
-          <div className="flex flex-wrap gap-1">
-            {assassin.skills.slice(0, 3).map((skill, index) => (
+      return (
+        <div className="mt-4 pt-4 border-t border-orden-700">
+          <div className="flex flex-wrap gap-2">
+            {visibleSkills.map((skill, index) => (
               <span
-                key={index}
-                className="px-2 py-1 bg-orden-700 text-orden-300 text-xs rounded"
+                key={`${skill}-${index}`}
+                className="px-2 py-1 bg-orden-700 text-orden-300 text-xs rounded-md border border-orden-600"
               >
                 {skill}
               </span>
             ))}
-            {assassin.skills.length > 3 && (
-              <span className="px-2 py-1 bg-orden-700 text-orden-400 text-xs rounded">
-                +{assassin.skills.length - 3} más
+            {remainingCount > 0 && (
+              <span className="px-2 py-1 bg-orden-700/50 text-orden-400 text-xs rounded-md border border-orden-600">
+                +{remainingCount} más
               </span>
             )}
           </div>
         </div>
-      )}
+      );
+    }, [assassin.skills]);
 
-      {/* Actions */}
-      <div className="flex justify-between items-center">
-        <div className="flex space-x-2">
-          {assassin.status === "Activo" && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onStatusChange(assassin.id, "Retirado")}
-              className="text-yellow-400 hover:text-yellow-300"
+    const handleViewDetails = () => onViewDetails(assassin);
+    const handleStatusChange = (newStatus: AsassinStatus) =>
+      onStatusChange(assassin.id, newStatus);
+
+    return (
+      <article
+        className="bg-orden-800 rounded-lg p-6 border border-orden-700 hover:border-orden-600 transition-colors"
+        aria-label={`Asesino ${assassin.alias}`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {/* Avatar */}
+            <div
+              className="w-12 h-12 bg-gold-500/20 rounded-full flex items-center justify-center"
+              aria-hidden="true"
             >
-              <ShieldOff className="h-3 w-3 mr-1" />
-              Retirar
-            </Button>
-          )}
-          {assassin.status === "Retirado" && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onStatusChange(assassin.id, "Activo")}
-              className="text-green-400 hover:text-green-300"
+              <span className="text-gold-400 font-bold text-lg">
+                {avatarLetter}
+              </span>
+            </div>
+
+            {/* Info */}
+            <div>
+              <h3 className="text-lg font-semibold text-orden-100">
+                {assassin.alias}
+              </h3>
+              <p className="text-orden-400 text-sm">{assassin.email}</p>
+              {assassin.realName && (
+                <p className="text-orden-500 text-sm">({assassin.realName})</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            {/* Stats */}
+            <div
+              className="text-right space-y-1"
+              role="group"
+              aria-label="Estadísticas del asesino"
             >
-              <Shield className="h-3 w-3 mr-1" />
-              Activar
-            </Button>
-          )}
-          {assassin.status !== "Excommunicado" && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onStatusChange(assassin.id, "Excommunicado")}
-              className="text-red-400 hover:text-red-300"
+              <div className="flex items-center text-sm text-orden-300">
+                <Coins
+                  className="h-4 w-4 mr-1 text-gold-400"
+                  aria-hidden="true"
+                />
+                <span aria-label={`${formattedGoldCoins} monedas de oro`}>
+                  {formattedGoldCoins}
+                </span>
+              </div>
+              <div className="flex items-center text-sm text-orden-300">
+                <Target className="h-4 w-4 mr-1" aria-hidden="true" />
+                <span
+                  aria-label={`${assassin.completedMissions} misiones completadas`}
+                >
+                  {assassin.completedMissions} misiones
+                </span>
+              </div>
+            </div>
+
+            {/* Status */}
+            <div
+              className={`px-3 py-1 rounded-lg border text-sm font-medium flex items-center ${statusColorClass}`}
+              role="status"
+              aria-label={`Estado: ${assassin.status}`}
             >
-              <UserX className="h-3 w-3 mr-1" />
-              Excomulgar
-            </Button>
-          )}
+              <StatusIcon className="h-4 w-4" aria-hidden="true" />
+              <span className="ml-1">{assassin.status}</span>
+            </div>
+
+            {/* Actions */}
+            <div
+              className="flex space-x-2"
+              role="group"
+              aria-label="Acciones del asesino"
+            >
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleViewDetails}
+                className="text-orden-400 hover:text-orden-200"
+                disabled={isUpdating}
+                aria-label={`Ver detalles de ${assassin.alias}`}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+
+              {statusActions.map((action) => {
+                const ActionIcon = action.icon;
+                return (
+                  <Button
+                    key={action.status}
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleStatusChange(action.status)}
+                    className={action.color}
+                    title={action.title}
+                    disabled={isUpdating}
+                    aria-label={action.title}
+                  >
+                    <ActionIcon className="h-4 w-4" />
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onViewDetails(assassin)}
-          className="text-orden-300 hover:text-orden-100"
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          Ver Detalles
-        </Button>
-      </div>
-    </div>
-  );
-}
+
+        {/* Skills */}
+        {skillsDisplay}
+      </article>
+    );
+  }
+);
+
+AssassinCard.displayName = "AssassinCard";

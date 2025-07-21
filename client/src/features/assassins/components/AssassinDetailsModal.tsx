@@ -1,3 +1,5 @@
+import type { Assassin } from "../../../shared/types";
+
 import React, { useState } from "react";
 import {
   X,
@@ -18,7 +20,6 @@ import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
 import { formatCurrency, formatDate } from "../../../shared/utils";
 import { getStatusColor, getStatusIcon } from "../utils";
 import { useAssassinForm } from "../hooks/useAssassinForm";
-import type { Assassin } from "../../../shared/types";
 import { SkillsEditor } from "./SkillsEditor";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 

@@ -78,10 +78,10 @@ export const CreateBloodMarkerModal = React.memo(
                   id="create-modal-title"
                   className="text-lg font-semibold text-orden-100"
                 >
-                  Nuevo Marcador de Sangre
+                  Solicitar Marcador de Sangre
                 </h3>
                 <p className="text-sm text-orden-400">
-                  Registrar una nueva deuda
+                  Crear solicitud de favor/deuda
                 </p>
               </div>
             </div>
@@ -101,7 +101,7 @@ export const CreateBloodMarkerModal = React.memo(
                 htmlFor="debtor-select"
                 className="block text-sm font-medium text-orden-200 mb-2"
               >
-                Asesino deudor *
+                Asesino al que solicitas el favor *
               </label>
               <select
                 id="debtor-select"
@@ -120,8 +120,8 @@ export const CreateBloodMarkerModal = React.memo(
                   </option>
                 ))}
               </select>
-              <p id="debtor-help" className="sr-only">
-                Selecciona el asesino que te debe un favor
+              <p id="debtor-help" className="text-xs text-orden-400 mt-1">
+                Este asesino recibirá una solicitud para aceptar la deuda
               </p>
             </div>
 
@@ -130,7 +130,7 @@ export const CreateBloodMarkerModal = React.memo(
                 htmlFor="description-input"
                 className="block text-sm font-medium text-orden-200 mb-2"
               >
-                Descripción del favor *
+                Descripción del favor solicitado *
               </label>
               <textarea
                 id="description-input"
@@ -140,13 +140,13 @@ export const CreateBloodMarkerModal = React.memo(
                 }
                 rows={4}
                 className="w-full px-4 py-3 bg-orden-700 border border-orden-600 rounded-lg text-orden-100 placeholder-orden-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                placeholder="Describe el favor o asistencia proporcionada..."
+                placeholder="Describe el favor que ya fue proporcionado y por el cual se solicita el marcador..."
                 required
                 aria-describedby="description-help"
                 maxLength={500}
               />
               <p id="description-help" className="text-xs text-orden-400 mt-1">
-                Máximo 500 caracteres
+                Máximo 500 caracteres. Sé específico sobre el favor realizado.
               </p>
             </div>
 
@@ -158,12 +158,12 @@ export const CreateBloodMarkerModal = React.memo(
                 />
                 <div>
                   <h4 className="text-sm font-medium text-red-400 mb-1">
-                    Aviso importante
+                    Sistema de consentimiento
                   </h4>
                   <p className="text-xs text-orden-300">
-                    Un marcador de sangre es un compromiso sagrado en La Orden.
-                    Solo debe usarse para registrar favores reales y
-                    significativos.
+                    Esta solicitud será enviada al asesino seleccionado. Debe
+                    aceptarla para que el marcador de sangre sea válido. Solo
+                    registra favores ya realizados.
                   </p>
                 </div>
               </div>
@@ -196,7 +196,7 @@ export const CreateBloodMarkerModal = React.memo(
                 ) : (
                   <>
                     <Skull className="h-4 w-4 mr-2" />
-                    Crear Marcador
+                    Enviar Solicitud
                   </>
                 )}
               </Button>

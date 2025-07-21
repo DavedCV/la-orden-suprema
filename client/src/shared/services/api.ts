@@ -12,7 +12,8 @@ import type {
   BloodMarker,
   Assassin,
   PaginatedResponse,
-  AsassinStatus
+  AsassinStatus,
+  RespondToBloodMarkerForm
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -705,7 +706,25 @@ class ApiService {
     await new Promise(resolve => setTimeout(resolve, 300));
 
     const mockBloodMarkers: BloodMarker[] = [
-      // Deudas que el asesino actual debe (él es el deudor)
+      // Solicitudes pendientes (nuevas)
+      {
+        id: "request-001",
+        debtorId: "assassin-001", // El asesino actual
+        creditorId: "assassin-005",
+        description: "Solicitud: Ayuda con extracción de emergencia durante misión fallida",
+        createdAt: "2024-01-28T14:20:00Z",
+        status: "Solicitud Pendiente",
+      },
+      // Solicitudes que el asesino actual ha enviado a otros
+      {
+        id: "request-002",
+        debtorId: "assassin-003",
+        creditorId: "assassin-001", // El asesino actual
+        description: "Solicitud: Información crucial proporcionada sobre ubicación de objetivo",
+        createdAt: "2024-01-27T10:15:00Z",
+        status: "Solicitud Pendiente",
+      },
+      // Deudas confirmadas (existentes)
       {
         id: "debt-001",
         debtorId: "assassin-001", // El asesino actual
@@ -731,6 +750,15 @@ class ApiService {
         createdAt: "2024-01-15T20:45:00Z",
         status: "Pago Pendiente de Confirmación",
         paidAt: "2024-01-22T14:20:00Z",
+      },
+      // Ejemplo de solicitud rechazada
+      {
+        id: "rejected-001",
+        debtorId: "assassin-001",
+        creditorId: "assassin-006",
+        description: "Solicitud rechazada: Supuesta ayuda con información incorrecta",
+        createdAt: "2024-01-25T08:30:00Z",
+        status: "Rechazada",
       }
     ];
 
@@ -745,18 +773,44 @@ class ApiService {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     const newBloodMarker: BloodMarker = {
-      id: `debt-${Date.now()}`,
+      id: `request-${Date.now()}`,
       debtorId: data.debtorId,
       creditorId: data.creditorId,
       description: data.description,
-      status: "Pendiente",
+      status: "Solicitud Pendiente", // Nueva solicitud requiere aceptación
       createdAt: new Date().toISOString(),
     };
 
     return {
       success: true,
       data: newBloodMarker,
-      message: 'Marcador de sangre creado exitosamente',
+      message: 'Solicitud de marcador de sangre enviada. Esperando respuesta del asesino solicitado.',
+    };
+  }
+
+  async respondToBloodMarkerRequest(data: RespondToBloodMarkerForm): Promise<ApiResponse<BloodMarker>> {
+    // Mock implementation for now
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    console.log(`Responding to blood marker request ${data.markerId}: ${data.accepted ? 'accepted' : 'rejected'}`);
+
+    const updatedMarker: BloodMarker = {
+      id: data.markerId,
+      debtorId: "assassin-001",
+      creditorId: "assassin-002",
+      description: data.accepted
+        ? "Solicitud aceptada: Favor confirmado por el deudor"
+        : `Solicitud rechazada: ${data.rejectionReason || 'Sin razón especificada'}`,
+      status: data.accepted ? "Pendiente" : "Rechazada",
+      createdAt: "2024-01-20T16:20:00Z",
+    };
+
+    return {
+      success: true,
+      data: updatedMarker,
+      message: data.accepted
+        ? 'Solicitud aceptada. El marcador de sangre está ahora activo.'
+        : 'Solicitud rechazada exitosamente.',
     };
   }
 

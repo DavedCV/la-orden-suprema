@@ -1,5 +1,12 @@
 import React from "react";
-import { Calendar, CheckCircle, DollarSign, Skull } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle,
+  DollarSign,
+  Skull,
+  Mail,
+  XCircle,
+} from "lucide-react";
 import { Button } from "../../../shared/components/Button";
 import { formatDate } from "../../../shared/utils";
 import {
@@ -8,6 +15,7 @@ import {
   getMarkerRole,
   canPayMarker,
   canConfirmPayment,
+  canRespondToRequest,
   getMarkerDescription,
   getRoleDisplayInfo,
 } from "../utils/statusUtils";
@@ -20,7 +28,9 @@ export const BloodMarkerCard = React.memo(function BloodMarkerCard({
   onPayMarker,
   onConfirmPayment,
   onViewDetails,
-}: BloodMarkerCardProps) {
+  onAcceptRequest,
+}: // onRejectRequest, // Not used directly - handled through modal
+BloodMarkerCardProps) {
   const { isCreditor } = getMarkerRole(marker, currentUserId);
   const StatusIcon = getStatusIcon(marker.status);
   const roleInfo = getRoleDisplayInfo(isCreditor);
@@ -33,6 +43,18 @@ export const BloodMarkerCard = React.memo(function BloodMarkerCard({
   const statusClasses = getStatusColorForCard(marker.status, isCreditor);
   const showPayButton = canPayMarker(marker, currentUserId);
   const showConfirmButton = canConfirmPayment(marker, currentUserId);
+  const showRequestActions = canRespondToRequest(marker, currentUserId);
+
+  const handleAcceptRequest = () => {
+    if (onAcceptRequest) {
+      onAcceptRequest(marker.id);
+    }
+  };
+
+  const handleRejectRequest = () => {
+    // For quick reject without reason - open modal instead
+    onViewDetails(marker);
+  };
 
   return (
     <div className="card p-6 hover:border-red-500/30 transition-colors">
@@ -40,7 +62,9 @@ export const BloodMarkerCard = React.memo(function BloodMarkerCard({
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-3">
             <div className={`p-2 rounded-lg ${roleInfo.bgColor}`}>
-              {isCreditor ? (
+              {marker.status === "Solicitud Pendiente" ? (
+                <Mail className={`h-5 w-5 text-blue-400`} />
+              ) : isCreditor ? (
                 <DollarSign className={`h-5 w-5 ${roleInfo.iconColor}`} />
               ) : (
                 <Skull className={`h-5 w-5 ${roleInfo.iconColor}`} />
@@ -80,24 +104,41 @@ export const BloodMarkerCard = React.memo(function BloodMarkerCard({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 ml-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onViewDetails(marker)}
-            aria-label={`Ver detalles del marcador con ${otherPartyName}`}
-          >
-            Ver detalles
-          </Button>
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2 ml-4">
+          {showRequestActions && (
+            <>
+              <Button
+                size="sm"
+                onClick={handleAcceptRequest}
+                className="bg-green-600 hover:bg-green-700 text-xs"
+                aria-label="Aceptar solicitud"
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Aceptar
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleRejectRequest}
+                className="text-red-400 hover:text-red-300 text-xs"
+                aria-label="Rechazar solicitud"
+              >
+                <XCircle className="h-3 w-3 mr-1" />
+                Rechazar
+              </Button>
+            </>
+          )}
 
           {showPayButton && (
             <Button
               size="sm"
               onClick={() => onPayMarker(marker.id)}
-              className="bg-yellow-600 hover:bg-yellow-700"
-              aria-label="Marcar como pagado"
+              className="bg-red-600 hover:bg-red-700 text-xs"
+              aria-label="Pagar marcador"
             >
-              Marcar como pagado
+              <Skull className="h-3 w-3 mr-1" />
+              Pagar
             </Button>
           )}
 
@@ -105,12 +146,23 @@ export const BloodMarkerCard = React.memo(function BloodMarkerCard({
             <Button
               size="sm"
               onClick={() => onConfirmPayment(marker.id)}
-              className="bg-green-600 hover:bg-green-700"
-              aria-label="Confirmar pago recibido"
+              className="bg-yellow-600 hover:bg-yellow-700 text-xs"
+              aria-label="Confirmar pago"
             >
-              Confirmar pago
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Confirmar
             </Button>
           )}
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onViewDetails(marker)}
+            className="text-orden-300 hover:text-orden-100 text-xs"
+            aria-label="Ver detalles"
+          >
+            Ver detalles
+          </Button>
         </div>
       </div>
     </div>

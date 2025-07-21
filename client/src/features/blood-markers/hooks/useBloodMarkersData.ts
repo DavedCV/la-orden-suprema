@@ -10,7 +10,9 @@ type BloodMarkerFilter =
   | "owed_by_me"
   | "owed_to_me"
   | "pending"
-  | "paid";
+  | "paid"
+  | "requests"
+  | "sent_requests";
 
 export function useBloodMarkersData() {
   const { user } = useAuthStore();
@@ -98,15 +100,59 @@ export function useBloodMarkersData() {
       queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
       toast({
         type: "success",
-        title: "Marcador creado",
-        message: "El marcador de sangre ha sido registrado exitosamente",
+        title: "Solicitud enviada",
+        message: "Tu solicitud de marcador de sangre ha sido enviada exitosamente",
       });
     },
     onError: () => {
       toast({
         type: "error",
         title: "Error",
-        message: "No se pudo crear el marcador de sangre",
+        message: "No se pudo enviar la solicitud de marcador de sangre",
+      });
+    },
+  });
+
+  const acceptRequestMutation = useMutation({
+    mutationFn: (markerId: string) =>
+      apiService.respondToBloodMarkerRequest({ markerId, accepted: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      toast({
+        type: "success",
+        title: "Solicitud aceptada",
+        message: "El marcador de sangre está ahora activo",
+      });
+    },
+    onError: () => {
+      toast({
+        type: "error",
+        title: "Error",
+        message: "No se pudo aceptar la solicitud",
+      });
+    },
+  });
+
+  const rejectRequestMutation = useMutation({
+    mutationFn: ({ markerId, reason }: { markerId: string; reason: string }) =>
+      apiService.respondToBloodMarkerRequest({
+        markerId,
+        accepted: false,
+        rejectionReason: reason
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      toast({
+        type: "success",
+        title: "Solicitud rechazada",
+        message: "La solicitud ha sido rechazada",
+      });
+    },
+    onError: () => {
+      toast({
+        type: "error",
+        title: "Error",
+        message: "No se pudo rechazar la solicitud",
       });
     },
   });
@@ -135,13 +181,17 @@ export function useBloodMarkersData() {
 
       switch (activeFilter) {
         case "owed_by_me":
-          return marker.debtorId === user?.id;
+          return marker.debtorId === user?.id && marker.status === "Pendiente";
         case "owed_to_me":
-          return marker.creditorId === user?.id;
+          return marker.creditorId === user?.id && marker.status === "Pendiente";
         case "pending":
           return marker.status === "Pendiente";
         case "paid":
           return marker.status === "Saldado";
+        case "requests":
+          return marker.status === "Solicitud Pendiente" && marker.debtorId === user?.id;
+        case "sent_requests":
+          return marker.status === "Solicitud Pendiente" && marker.creditorId === user?.id;
         default:
           return true;
       }
@@ -161,8 +211,20 @@ export function useBloodMarkersData() {
         m.creditorId === user?.id &&
         m.status === "Pago Pendiente de Confirmación"
     ).length;
+    const incomingRequests = bloodMarkers.filter(
+      (m) => m.debtorId === user?.id && m.status === "Solicitud Pendiente"
+    ).length;
+    const sentRequests = bloodMarkers.filter(
+      (m) => m.creditorId === user?.id && m.status === "Solicitud Pendiente"
+    ).length;
 
-    return { owedByMe, owedToMe, pendingConfirmation };
+    return {
+      owedByMe,
+      owedToMe,
+      pendingConfirmation,
+      incomingRequests,
+      sentRequests
+    };
   }, [bloodMarkers, user?.id]);
 
   // Filter out current user from assassins list for creation
@@ -191,6 +253,17 @@ export function useBloodMarkersData() {
       });
     },
     [createMarkerMutation, user?.id]
+  );
+
+  const handleAcceptRequest = useCallback(
+    (markerId: string) => acceptRequestMutation.mutate(markerId),
+    [acceptRequestMutation]
+  );
+
+  const handleRejectRequest = useCallback(
+    (markerId: string, reason: string) =>
+      rejectRequestMutation.mutate({ markerId, reason }),
+    [rejectRequestMutation]
   );
 
   const handleFilterChange = useCallback((filter: BloodMarkerFilter) => {
@@ -223,11 +296,16 @@ export function useBloodMarkersData() {
     isCreating: createMarkerMutation.isPending,
     isPaying: payMarkerMutation.isPending,
     isConfirming: confirmPaymentMutation.isPending,
+    isAccepting: acceptRequestMutation.isPending,
+    isRejecting: rejectRequestMutation.isPending,
+    isProcessingRequest: acceptRequestMutation.isPending || rejectRequestMutation.isPending,
 
     // Handlers
     handlePayMarker,
     handleConfirmPayment,
     handleCreateMarker,
+    handleAcceptRequest,
+    handleRejectRequest,
     handleFilterChange,
     handleSearchChange,
     getOtherPartyName,

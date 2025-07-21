@@ -10,6 +10,8 @@ import { BloodMarkerFilters } from "./BloodMarkerFilters";
 import { BloodMarkerCard } from "./BloodMarkerCard";
 import { CreateBloodMarkerModal } from "./CreateBloodMarkerModal";
 import { BloodMarkerDetailsModal } from "./BloodMarkerDetailsModal";
+import { BloodMarkerRequestModal } from "./BloodMarkerRequestModal";
+import { canRespondToRequest } from "../utils/statusUtils";
 import type { BloodMarker } from "../../../shared/types";
 
 export function BloodMarkersPage() {
@@ -17,6 +19,9 @@ export function BloodMarkersPage() {
   const { goBack } = useNavigation();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<BloodMarker | null>(
+    null
+  );
+  const [selectedRequest, setSelectedRequest] = useState<BloodMarker | null>(
     null
   );
 
@@ -31,10 +36,13 @@ export function BloodMarkersPage() {
     handlePayMarker,
     handleConfirmPayment,
     handleCreateMarker,
+    handleAcceptRequest,
+    handleRejectRequest,
     handleFilterChange,
     handleSearchChange,
     getOtherPartyName,
     refreshData,
+    isProcessingRequest,
   } = useBloodMarkersData();
 
   // Memoized handlers to prevent unnecessary re-renders
@@ -52,12 +60,23 @@ export function BloodMarkersPage() {
     [handleCreateMarker]
   );
 
-  const handleViewDetails = useCallback((marker: BloodMarker) => {
-    setSelectedMarker(marker);
-  }, []);
+  const handleViewDetails = useCallback(
+    (marker: BloodMarker) => {
+      if (canRespondToRequest(marker, user?.id || "")) {
+        setSelectedRequest(marker);
+      } else {
+        setSelectedMarker(marker);
+      }
+    },
+    [user?.id]
+  );
 
   const handleCloseDetails = useCallback(() => {
     setSelectedMarker(null);
+  }, []);
+
+  const handleCloseRequest = useCallback(() => {
+    setSelectedRequest(null);
   }, []);
 
   const handlePayMarkerWithClose = useCallback(
@@ -74,6 +93,22 @@ export function BloodMarkersPage() {
       setSelectedMarker(null);
     },
     [handleConfirmPayment]
+  );
+
+  const handleAcceptRequestWithClose = useCallback(
+    (markerId: string) => {
+      handleAcceptRequest(markerId);
+      setSelectedRequest(null);
+    },
+    [handleAcceptRequest]
+  );
+
+  const handleRejectRequestWithClose = useCallback(
+    (markerId: string, reason: string) => {
+      handleRejectRequest(markerId, reason);
+      setSelectedRequest(null);
+    },
+    [handleRejectRequest]
   );
 
   // Loading state
@@ -142,7 +177,7 @@ export function BloodMarkersPage() {
                     Marcadores de Sangre
                   </h1>
                   <p className="text-sm text-orden-400">
-                    Gestión de deudas y favores
+                    Sistema de favores y deudas
                   </p>
                 </div>
               </div>
@@ -151,10 +186,10 @@ export function BloodMarkersPage() {
             <Button
               onClick={handleCreateModalOpen}
               className="bg-red-600 hover:bg-red-700"
-              aria-label="Crear nuevo marcador de sangre"
+              aria-label="Crear nueva solicitud de marcador de sangre"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Nuevo Marcador
+              Nueva Solicitud
             </Button>
           </div>
         </div>
@@ -189,6 +224,8 @@ export function BloodMarkersPage() {
                     onPayMarker={handlePayMarker}
                     onConfirmPayment={handleConfirmPayment}
                     onViewDetails={handleViewDetails}
+                    onAcceptRequest={handleAcceptRequest}
+                    onRejectRequest={handleRejectRequest}
                   />
                 </div>
               ))}
@@ -223,6 +260,17 @@ export function BloodMarkersPage() {
           onConfirmPayment={handleConfirmPaymentWithClose}
         />
       )}
+
+      {selectedRequest && (
+        <BloodMarkerRequestModal
+          marker={selectedRequest}
+          otherPartyName={getOtherPartyName(selectedRequest)}
+          onClose={handleCloseRequest}
+          onAccept={handleAcceptRequestWithClose}
+          onReject={handleRejectRequestWithClose}
+          isProcessing={isProcessingRequest}
+        />
+      )}
     </div>
   );
 }
@@ -239,6 +287,25 @@ const EmptyState = React.memo(function EmptyState({
 }) {
   const hasFilters = activeFilter !== "all" || searchQuery.trim() !== "";
 
+  const getEmptyMessage = () => {
+    switch (activeFilter) {
+      case "requests":
+        return "No tienes solicitudes de marcadores pendientes";
+      case "sent_requests":
+        return "No has enviado solicitudes de marcadores";
+      case "owed_by_me":
+        return "No tienes deudas pendientes";
+      case "owed_to_me":
+        return "No tienes favores pendientes de cobro";
+      case "paid":
+        return "No tienes marcadores saldados";
+      default:
+        return hasFilters
+          ? "No hay marcadores que coincidan con los filtros seleccionados"
+          : "No tienes marcadores de sangre registrados";
+    }
+  };
+
   return (
     <div className="card p-12 text-center">
       <Skull
@@ -248,18 +315,14 @@ const EmptyState = React.memo(function EmptyState({
       <h3 className="text-lg font-medium text-orden-200 mb-2">
         No hay marcadores de sangre
       </h3>
-      <p className="text-orden-400 mb-6">
-        {hasFilters
-          ? "No hay marcadores que coincidan con los filtros seleccionados"
-          : "No tienes marcadores de sangre registrados"}
-      </p>
+      <p className="text-orden-400 mb-6">{getEmptyMessage()}</p>
       <Button
         onClick={onCreateMarker}
         className="bg-red-600 hover:bg-red-700"
-        aria-label="Crear primer marcador de sangre"
+        aria-label="Crear primera solicitud de marcador de sangre"
       >
         <Plus className="h-4 w-4 mr-2" />
-        {hasFilters ? "Crear nuevo marcador" : "Crear primer marcador"}
+        {hasFilters ? "Nueva solicitud" : "Primera solicitud"}
       </Button>
     </div>
   );

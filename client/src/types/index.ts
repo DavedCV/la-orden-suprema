@@ -41,7 +41,7 @@ export interface Mission {
 }
 
 // Blood Marker (Debt) Types
-export type BloodMarkerStatus = 'Pendiente' | 'Pago Pendiente de Confirmación' | 'Saldado';
+export type BloodMarkerStatus = 'Solicitud Pendiente' | 'Pendiente' | 'Pago Pendiente de Confirmación' | 'Saldado' | 'Rechazada';
 
 export interface BloodMarker {
   id: string;

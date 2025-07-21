@@ -3,12 +3,16 @@ export type BloodMarkerFilter =
   | "owed_by_me"
   | "owed_to_me"
   | "pending"
-  | "paid";
+  | "paid"
+  | "requests"
+  | "sent_requests";
 
 export interface BloodMarkerStats {
   owedByMe: number;
   owedToMe: number;
   pendingConfirmation: number;
+  incomingRequests: number;
+  sentRequests: number;
 }
 
 export interface BloodMarkerCardProps {
@@ -18,6 +22,8 @@ export interface BloodMarkerCardProps {
   onPayMarker: (id: string) => void;
   onConfirmPayment: (id: string) => void;
   onViewDetails: (marker: import("../../../shared/types").BloodMarker) => void;
+  onAcceptRequest?: (id: string) => void;
+  onRejectRequest?: (id: string, reason: string) => void;
 }
 
 export interface CreateBloodMarkerModalProps {
@@ -41,8 +47,4 @@ export interface BloodMarkerFiltersProps {
   searchQuery: string;
   onFilterChange: (filter: BloodMarkerFilter) => void;
   onSearchChange: (query: string) => void;
-}
-
-export interface BloodMarkerStatsProps {
-  stats: BloodMarkerStats;
 }

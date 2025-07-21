@@ -6,6 +6,8 @@ import type { BloodMarkerFiltersProps } from "../types";
 
 const FILTER_OPTIONS = [
   { key: "all", label: "Todos" },
+  { key: "requests", label: "Solicitudes recibidas" },
+  { key: "sent_requests", label: "Solicitudes enviadas" },
   { key: "owed_by_me", label: "Que debo" },
   { key: "owed_to_me", label: "Que me deben" },
   { key: "pending", label: "Pendientes" },
@@ -42,25 +44,16 @@ export const BloodMarkerFilters = React.memo(function BloodMarkerFilters({
         </fieldset>
 
         {/* Search Input */}
-        <div className="relative w-full lg:w-80">
-          <label htmlFor="search-markers" className="sr-only">
-            Buscar marcadores
-          </label>
-          <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orden-400 h-4 w-4"
-            aria-hidden="true"
-          />
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-orden-400" />
           <Input
-            id="search-markers"
-            placeholder="Buscar por descripción o asesino..."
+            type="text"
+            placeholder="Buscar marcadores..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10"
-            aria-describedby="search-help"
+            className="pl-10 w-full lg:w-80"
+            aria-label="Buscar en marcadores de sangre"
           />
-          <p id="search-help" className="sr-only">
-            Buscar marcadores por descripción del favor o nombre del asesino
-          </p>
         </div>
       </div>
     </div>

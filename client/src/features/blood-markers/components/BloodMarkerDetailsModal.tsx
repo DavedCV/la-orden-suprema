@@ -216,7 +216,7 @@ export const BloodMarkerDetailsModal = React.memo(
                   aria-label="Marcar este marcador como pagado"
                 >
                   <Clock className="h-4 w-4 mr-2" />
-                  Marcar como pagado
+                  Marcar como Saldado
                 </Button>
               )}
 
@@ -227,7 +227,7 @@ export const BloodMarkerDetailsModal = React.memo(
                   aria-label="Confirmar que has recibido el pago"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Confirmar pago
+                  Confirmar Recepción
                 </Button>
               )}
             </div>

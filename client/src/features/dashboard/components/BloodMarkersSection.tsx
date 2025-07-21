@@ -30,58 +30,13 @@ export function BloodMarkersSection({
   currentUserId,
   onNavigate,
 }: BloodMarkersSectionProps) {
-  // Filter markers by user relationship
-  const myDebts = bloodMarkers.filter(
-    (marker) => marker.debtorId === currentUserId
-  );
+  // Filter markers by user relationship - only showing what others owe me
   const owedToMe = bloodMarkers.filter(
     (marker) => marker.creditorId === currentUserId
   );
 
   return (
     <>
-      {/* Deudas que debo */}
-      <div className="card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-orden-100">Mis Deudas</h3>
-          <div className="flex items-center space-x-2">
-            <Skull className="h-5 w-5 text-red-400" />
-            <span className="text-sm text-red-400 font-medium">
-              {myDebts.filter((marker) => marker.status === "Pendiente").length}
-            </span>
-          </div>
-        </div>
-        <div className="space-y-3">
-          {myDebts.slice(0, 3).map((marker) => (
-            <BloodMarkerItem
-              key={marker.id}
-              marker={marker}
-              isCreditor={false}
-              assassins={assassins}
-              onPayMarker={onPayMarker}
-              onConfirmPayment={onConfirmPayment}
-              isLoading={isProcessingPayment}
-            />
-          ))}
-          {myDebts.length === 0 && (
-            <div className="text-center py-6 text-orden-400">
-              <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No tienes deudas pendientes</p>
-            </div>
-          )}
-          {myDebts.length > 3 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate("/blood-markers")}
-              className="w-full text-red-400 hover:text-red-300"
-            >
-              Ver todas mis deudas <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
-          )}
-        </div>
-      </div>
-
       {/* Deudas que me deben */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
@@ -118,7 +73,7 @@ export function BloodMarkersSection({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onNavigate("/blood-markers")}
+              onClick={() => onNavigate("/blood-markers?filter=owed_to_me")}
               className="w-full text-gold-400 hover:text-gold-300"
             >
               Ver todas las deudas <ArrowRight className="h-3 w-3 ml-1" />

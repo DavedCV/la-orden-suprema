@@ -11,7 +11,8 @@ import { BloodMarkerCard } from "./BloodMarkerCard";
 import { CreateBloodMarkerModal } from "./CreateBloodMarkerModal";
 import { BloodMarkerDetailsModal } from "./BloodMarkerDetailsModal";
 import { BloodMarkerRequestModal } from "./BloodMarkerRequestModal";
-import { canRespondToRequest } from "../utils/statusUtils";
+import { PaymentConfirmationModal } from "./PaymentConfirmationModal";
+import { canRespondToRequest, canPayMarker } from "../utils/statusUtils";
 import type { BloodMarker } from "../../../shared/types";
 
 export function BloodMarkersPage() {
@@ -22,6 +23,9 @@ export function BloodMarkersPage() {
     null
   );
   const [selectedRequest, setSelectedRequest] = useState<BloodMarker | null>(
+    null
+  );
+  const [selectedPayment, setSelectedPayment] = useState<BloodMarker | null>(
     null
   );
 
@@ -43,6 +47,7 @@ export function BloodMarkersPage() {
     getOtherPartyName,
     refreshData,
     isProcessingRequest,
+    isPaying,
   } = useBloodMarkersData();
 
   // Memoized handlers to prevent unnecessary re-renders
@@ -71,12 +76,33 @@ export function BloodMarkersPage() {
     [user?.id]
   );
 
+  const handlePayMarkerClick = useCallback(
+    (markerId: string) => {
+      const marker = filteredMarkers.find((m) => m.id === markerId);
+      if (marker && canPayMarker(marker, user?.id || "")) {
+        setSelectedPayment(marker);
+      }
+    },
+    [filteredMarkers, user?.id]
+  );
+
+  const handleConfirmDebtPayment = useCallback(() => {
+    if (selectedPayment) {
+      handlePayMarker(selectedPayment.id);
+      setSelectedPayment(null);
+    }
+  }, [selectedPayment, handlePayMarker]);
+
   const handleCloseDetails = useCallback(() => {
     setSelectedMarker(null);
   }, []);
 
   const handleCloseRequest = useCallback(() => {
     setSelectedRequest(null);
+  }, []);
+
+  const handleClosePayment = useCallback(() => {
+    setSelectedPayment(null);
   }, []);
 
   const handlePayMarkerWithClose = useCallback(
@@ -221,8 +247,10 @@ export function BloodMarkersPage() {
                     marker={marker}
                     currentUserId={user?.id || ""}
                     otherPartyName={getOtherPartyName(marker)}
-                    onPayMarker={handlePayMarker}
-                    onConfirmPayment={handleConfirmPayment}
+                    onPayMarker={handlePayMarkerClick}
+                    onConfirmPayment={(markerId: string) =>
+                      handleConfirmPayment(markerId)
+                    }
                     onViewDetails={handleViewDetails}
                     onAcceptRequest={handleAcceptRequest}
                     onRejectRequest={handleRejectRequest}
@@ -269,6 +297,16 @@ export function BloodMarkersPage() {
           onAccept={handleAcceptRequestWithClose}
           onReject={handleRejectRequestWithClose}
           isProcessing={isProcessingRequest}
+        />
+      )}
+
+      {selectedPayment && (
+        <PaymentConfirmationModal
+          marker={selectedPayment}
+          otherPartyName={getOtherPartyName(selectedPayment)}
+          onClose={handleClosePayment}
+          onConfirm={handleConfirmDebtPayment}
+          isProcessing={isPaying}
         />
       )}
     </div>

@@ -5,6 +5,7 @@ import { ActivityFeed } from "./ActivityFeed";
 import { QuickActions } from "./QuickActions";
 import { SystemStatus } from "./SystemStatus";
 import { BloodMarkersSection } from "./BloodMarkersSection";
+import { DebtsSummaryCard } from "../../blood-markers/components/DebtsSummaryCard";
 import type {
   AssassinDashboard as AssassinDashboardData,
   BloodMarker,
@@ -32,6 +33,11 @@ export const AssassinDashboard = React.memo(function AssassinDashboard({
   isProcessingPayment,
 }: AssassinDashboardProps) {
   const { navigateTo } = useNavigation();
+
+  const handleViewAllDebts = () => {
+    // Navigate to blood markers page with "owed_by_me" filter
+    navigateTo("/blood-markers?filter=owed_by_me");
+  };
 
   return (
     <>
@@ -78,6 +84,16 @@ export const AssassinDashboard = React.memo(function AssassinDashboard({
         {/* Sidebar */}
         <div className="space-y-6">
           <QuickActions role="assassin" />
+
+          {/* Priority Debts Summary */}
+          <DebtsSummaryCard
+            debts={bloodMarkers}
+            assassins={assassins}
+            currentUserId={data.profile.id}
+            onPayDebt={onPayMarker}
+            onViewAll={handleViewAllDebts}
+            isProcessing={isProcessingPayment}
+          />
 
           <BloodMarkersSection
             bloodMarkers={bloodMarkers}

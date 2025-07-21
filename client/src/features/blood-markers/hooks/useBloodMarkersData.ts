@@ -57,15 +57,15 @@ export function useBloodMarkersData() {
       queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
       toast({
         type: "success",
-        title: "Marcador pagado",
-        message: "Has marcado la deuda como pagada. Esperando confirmación.",
+        title: "✅ Deuda marcada como pagada",
+        message: "El acreedor será notificado para confirmar el pago. Una vez confirmado, el marcador será saldado definitivamente.",
       });
     },
     onError: () => {
       toast({
         type: "error",
-        title: "Error",
-        message: "No se pudo procesar el pago del marcador",
+        title: "❌ Error al procesar pago",
+        message: "No se pudo marcar la deuda como pagada. Verifica tu conexión e intenta nuevamente.",
       });
     },
   });
@@ -77,15 +77,15 @@ export function useBloodMarkersData() {
       queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
       toast({
         type: "success",
-        title: "Pago confirmado",
-        message: "El marcador ha sido saldado exitosamente",
+        title: "🎉 Marcador saldado completamente",
+        message: "Has confirmado el pago. El marcador de sangre ha sido cerrado exitosamente.",
       });
     },
     onError: () => {
       toast({
         type: "error",
-        title: "Error",
-        message: "No se pudo confirmar el pago",
+        title: "❌ Error en confirmación",
+        message: "No se pudo confirmar el pago del marcador. Intenta nuevamente.",
       });
     },
   });

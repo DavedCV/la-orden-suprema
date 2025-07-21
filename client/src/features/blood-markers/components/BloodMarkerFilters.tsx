@@ -6,12 +6,12 @@ import type { BloodMarkerFiltersProps } from "../types";
 
 const FILTER_OPTIONS = [
   { key: "all", label: "Todos" },
-  { key: "requests", label: "Solicitudes recibidas" },
-  { key: "sent_requests", label: "Solicitudes enviadas" },
-  { key: "owed_by_me", label: "Que debo" },
-  { key: "owed_to_me", label: "Que me deben" },
-  { key: "pending", label: "Pendientes" },
-  { key: "paid", label: "Saldados" },
+  { key: "owed_by_me", label: "🔴 Que debo" },
+  { key: "requests", label: "📨 Solicitudes recibidas" },
+  { key: "owed_to_me", label: "💰 Que me deben" },
+  { key: "sent_requests", label: "📤 Solicitudes enviadas" },
+  { key: "pending", label: "⏳ Pendientes" },
+  { key: "paid", label: "✅ Saldados" },
 ] as const;
 
 export const BloodMarkerFilters = React.memo(function BloodMarkerFilters({

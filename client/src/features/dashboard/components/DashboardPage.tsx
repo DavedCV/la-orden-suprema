@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "../../../shared/utils/toast";
 import { formatDate, formatCurrency } from "../../../shared/utils";
+import { useNavigation } from "../../../shared/hooks/useNavigation";
 import type {
   AdminDashboard,
   AssassinDashboard,
@@ -121,10 +122,7 @@ export function DashboardPage() {
     });
   };
 
-  const handleNavigate = (path: string) => {
-    window.history.pushState({}, "", path);
-    window.location.reload();
-  };
+  const { navigateTo } = useNavigation();
 
   if (isLoading) {
     return (
@@ -221,7 +219,7 @@ export function DashboardPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleNavigate("/my-missions")}
+                    onClick={() => navigateTo("/my-missions")}
                     className="text-gold-400 hover:text-gold-300"
                   >
                     Ver todas <ExternalLink className="h-3 w-3 ml-1" />
@@ -234,7 +232,7 @@ export function DashboardPage() {
                 ) : user?.role === "assassin" && dashboardData ? (
                   <AssassinMissions
                     data={dashboardData as AssassinDashboard}
-                    onNavigate={handleNavigate}
+                    onNavigate={navigateTo}
                   />
                 ) : (
                   <div className="text-center py-8 text-orden-400">
@@ -272,7 +270,7 @@ export function DashboardPage() {
                       fullWidth
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleNavigate("/profile")}
+                      onClick={() => navigateTo("/profile")}
                     >
                       <User className="h-4 w-4 mr-2" />
                       Mi Perfil
@@ -281,7 +279,7 @@ export function DashboardPage() {
                       fullWidth
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleNavigate("/assassins")}
+                      onClick={() => navigateTo("/assassins")}
                     >
                       <Users className="h-4 w-4 mr-2" />
                       Gestionar Asesinos
@@ -290,7 +288,7 @@ export function DashboardPage() {
                       fullWidth
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleNavigate("/missions")}
+                      onClick={() => navigateTo("/missions")}
                     >
                       <Target className="h-4 w-4 mr-2" />
                       Gestionar Misiones
@@ -299,7 +297,7 @@ export function DashboardPage() {
                       fullWidth
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleNavigate("/map")}
+                      onClick={() => navigateTo("/map")}
                     >
                       <BarChart3 className="h-4 w-4 mr-2" />
                       Mapa Global
@@ -308,7 +306,7 @@ export function DashboardPage() {
                       fullWidth
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleNavigate("/reports")}
+                      onClick={() => navigateTo("/reports")}
                     >
                       <PieChart className="h-4 w-4 mr-2" />
                       Reportes
@@ -320,7 +318,7 @@ export function DashboardPage() {
                       fullWidth
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleNavigate("/profile")}
+                      onClick={() => navigateTo("/profile")}
                     >
                       <User className="h-4 w-4 mr-2" />
                       Mi Perfil
@@ -329,7 +327,7 @@ export function DashboardPage() {
                       fullWidth
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleNavigate("/my-missions")}
+                      onClick={() => navigateTo("/my-missions")}
                     >
                       <Target className="h-4 w-4 mr-2" />
                       Mis Misiones
@@ -338,7 +336,7 @@ export function DashboardPage() {
                       fullWidth
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleNavigate("/blood-markers")}
+                      onClick={() => navigateTo("/blood-markers")}
                     >
                       <Skull className="h-4 w-4 mr-2" />
                       Blood Markers
@@ -347,7 +345,7 @@ export function DashboardPage() {
                       fullWidth
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleNavigate("/directory")}
+                      onClick={() => navigateTo("/directory")}
                     >
                       <Users className="h-4 w-4 mr-2" />
                       Directorio
@@ -417,7 +415,7 @@ export function DashboardPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleNavigate("/blood-markers")}
+                        onClick={() => navigateTo("/blood-markers")}
                         className="w-full text-red-400 hover:text-red-300"
                       >
                         Ver todas mis deudas{" "}
@@ -480,7 +478,7 @@ export function DashboardPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleNavigate("/blood-markers")}
+                        onClick={() => navigateTo("/blood-markers")}
                         className="w-full text-gold-400 hover:text-gold-300"
                       >
                         Ver todas las deudas{" "}

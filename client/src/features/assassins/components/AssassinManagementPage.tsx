@@ -30,6 +30,7 @@ import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
 import { apiService } from "../../../shared/services/api";
 import { formatCurrency, formatDate } from "../../../shared/utils";
 import { toast } from "../../../shared/utils/toast";
+import { useNavigation } from "../../../shared/hooks/useNavigation";
 import type { Assassin, AsassinStatus } from "../../../shared/types";
 import { CreateAssassinForm } from "./CreateAssassinForm";
 
@@ -60,6 +61,7 @@ const editAssassinSchema = z.object({
 type EditAssassinFormData = z.infer<typeof editAssassinSchema>;
 
 export function AssassinManagementPage() {
+  const { goToDashboard } = useNavigation();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<AsassinStatus | "Todos">(
     "Todos"
@@ -137,10 +139,7 @@ export function AssassinManagementPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  window.history.pushState(null, "", "/");
-                  window.location.reload();
-                }}
+                onClick={goToDashboard}
                 className="text-orden-400 hover:text-orden-200"
               >
                 ← Volver al Dashboard

@@ -22,6 +22,7 @@ import {
   Shield,
 } from "lucide-react";
 import { formatDate } from "../../../shared/utils";
+import { useNavigation } from "../../../shared/hooks/useNavigation";
 import type { BloodMarker, Assassin } from "../../../shared/types";
 
 type BloodMarkerFilter =
@@ -33,6 +34,7 @@ type BloodMarkerFilter =
 
 export function BloodMarkersPage() {
   const { user } = useAuthStore();
+  const { goBack } = useNavigation();
   const [activeFilter, setActiveFilter] = useState<BloodMarkerFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -96,10 +98,6 @@ export function BloodMarkersPage() {
       });
     },
   });
-
-  const handleBackToDashboard = () => {
-    window.history.back();
-  };
 
   // Filter markers
   const filteredMarkers = bloodMarkers.filter((marker) => {
@@ -171,7 +169,7 @@ export function BloodMarkersPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleBackToDashboard}
+                onClick={goBack}
                 className="text-orden-300 hover:text-orden-100"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -269,7 +267,7 @@ export function BloodMarkersPage() {
               ].map((filter) => (
                 <Button
                   key={filter.key}
-                  variant={activeFilter === filter.key ? "default" : "ghost"}
+                  variant={activeFilter === filter.key ? "primary" : "ghost"}
                   size="sm"
                   onClick={() =>
                     setActiveFilter(filter.key as BloodMarkerFilter)

@@ -21,6 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import { formatDate, formatCurrency } from "../../../shared/utils";
+import { useNavigation } from "../../../shared/hooks/useNavigation";
 import type { Mission, Assassin, MissionStatus } from "../../../shared/types";
 import { CreateMissionForm } from "./CreateMissionForm";
 import { AssignMissionForm } from "./AssignMissionForm";
@@ -35,6 +36,7 @@ type MissionFilter =
   | "fallida";
 
 export function MissionManagementPage() {
+  const { goToDashboard } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<MissionFilter>("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -81,11 +83,6 @@ export function MissionManagementPage() {
     fallida: missions.filter((m) => m.status === "Fallida").length,
   };
 
-  const handleBackToDashboard = () => {
-    window.history.pushState(null, "", "/dashboard");
-    window.location.reload();
-  };
-
   if (isLoadingMissions || isLoadingAssassins) {
     return (
       <div className="min-h-screen bg-orden-900 flex items-center justify-center">
@@ -107,7 +104,7 @@ export function MissionManagementPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleBackToDashboard}
+                onClick={goToDashboard}
                 className="text-orden-300 hover:text-orden-100"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -269,8 +266,7 @@ export function MissionManagementPage() {
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
-            // In a real app, we would invalidate queries here
-            window.location.reload(); // Simple refresh for now
+            // Data will be refreshed automatically by React Query
           }}
         />
       )}
@@ -282,8 +278,7 @@ export function MissionManagementPage() {
           onClose={() => setShowAssignModal(false)}
           onSuccess={() => {
             setShowAssignModal(false);
-            // In a real app, we would invalidate queries here
-            window.location.reload(); // Simple refresh for now
+            // Data will be refreshed automatically by React Query
           }}
         />
       )}
@@ -305,8 +300,7 @@ export function MissionManagementPage() {
           }}
           onSuccess={() => {
             setShowDetailsModal(false);
-            // In a real app, we would invalidate queries here
-            window.location.reload(); // Simple refresh for now
+            // Data will be refreshed automatically by React Query
           }}
         />
       )}

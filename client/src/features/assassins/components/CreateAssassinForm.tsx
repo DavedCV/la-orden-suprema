@@ -39,14 +39,11 @@ const createAssassinSchema = z.object({
     .string()
     .min(2, "El nombre real debe tener al menos 2 caracteres")
     .max(100, "El nombre real no puede exceder 100 caracteres"),
-  initialStatus: z
-    .enum(["Activo", "Retirado", "Excommunicado"] as const)
-    .default("Activo"),
+  initialStatus: z.enum(["Activo", "Retirado", "Excommunicado"] as const),
   initialGoldCoins: z
     .number()
     .min(0, "Las monedas iniciales no pueden ser negativas")
-    .max(1000000, "Las monedas iniciales no pueden exceder 1,000,000")
-    .default(1000),
+    .max(1000000, "Las monedas iniciales no pueden exceder 1,000,000"),
 });
 
 type CreateAssassinFormData = z.infer<typeof createAssassinSchema>;

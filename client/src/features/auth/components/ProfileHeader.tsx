@@ -1,5 +1,6 @@
 import { Edit3, Shield, Crown, UserIcon } from "lucide-react";
 import { Button } from "../../../shared/components/Button";
+import { useNavigation } from "../../../shared/hooks/useNavigation";
 import type { User, Assassin } from "../../../shared/types";
 
 interface ProfileHeaderProps {
@@ -34,6 +35,7 @@ export function ProfileHeader({
   onPasswordChange,
 }: ProfileHeaderProps) {
   const isUserAssassin = isAssassin(profile);
+  const { goToDashboard } = useNavigation();
 
   return (
     <div className="bg-orden-800 border-b border-orden-700">
@@ -43,10 +45,7 @@ export function ProfileHeader({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                window.history.pushState(null, "", "/");
-                window.location.reload();
-              }}
+              onClick={goToDashboard}
               className="text-orden-400 hover:text-orden-200"
             >
               ← Volver al Dashboard

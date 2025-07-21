@@ -27,6 +27,7 @@ import { useAuthStore } from "../../../shared/store/authStore";
 import { apiService } from "../../../shared/services/api";
 import { toast } from "../../../shared/utils/toast";
 import { formatDate, formatCurrency } from "../../../shared/utils";
+import { useNavigation } from "../../../shared/hooks/useNavigation";
 import type { User, Assassin } from "../../../shared/types";
 
 // Validation schema for profile update
@@ -55,6 +56,7 @@ function isAssassin(profile: User | Assassin): profile is Assassin {
 export function ProfilePage() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const { goToDashboard } = useNavigation();
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [skills, setSkills] = useState<string[]>([]);
@@ -203,10 +205,7 @@ export function ProfilePage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  window.history.pushState(null, "", "/");
-                  window.location.reload();
-                }}
+                onClick={goToDashboard}
                 className="text-orden-400 hover:text-orden-200"
               >
                 ← Volver al Dashboard

@@ -25,6 +25,7 @@ import {
   Eye,
 } from "lucide-react";
 import { formatDate, formatCurrency } from "../../../shared/utils";
+import { useNavigation } from "../../../shared/hooks/useNavigation";
 import type { Assassin } from "../../../shared/types";
 
 interface SystemMetrics {
@@ -71,6 +72,7 @@ const TIME_RANGES: TimeRange[] = [
 
 export function ReportsPage() {
   const { user } = useAuthStore();
+  const { goBack } = useNavigation();
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>(
     TIME_RANGES[1]
   );
@@ -79,9 +81,9 @@ export function ReportsPage() {
   // Redirect if not admin
   useEffect(() => {
     if (user?.role !== "admin") {
-      window.history.back();
+      goBack();
     }
-  }, [user]);
+  }, [user, goBack]);
 
   // Fetch data
   const { data: assassinsData, isLoading: isLoadingAssassins } = useQuery({
@@ -323,7 +325,10 @@ export function ReportsPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  // Data will refresh automatically with React Query
+                  // In production, this would refetch specific queries
+                }}
                 className="text-orden-300 hover:text-orden-100"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />

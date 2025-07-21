@@ -1,14 +1,6 @@
 import { Button } from "../../../shared/components/Button";
 import { useNavigation } from "../../../shared/hooks/useNavigation";
-import {
-  User,
-  Target,
-  Users,
-  BarChart3,
-  PieChart,
-  Settings,
-  Skull,
-} from "lucide-react";
+import { User, Target, Users, BarChart3, PieChart, Skull } from "lucide-react";
 import type { UserRole } from "../../../shared/types";
 
 interface QuickActionsProps {
@@ -77,11 +69,31 @@ export function QuickActions({ role }: QuickActionsProps) {
   const actions = role === "admin" ? adminActions : assassinActions;
 
   return (
-    <div className="card p-6">
+    <div className="card p-4 lg:p-6">
       <h3 className="text-lg font-semibold text-orden-100 mb-4">
         Acciones Rápidas
       </h3>
-      <div className="space-y-3">
+
+      {/* Mobile: Horizontal scrolling grid */}
+      <div className="lg:hidden">
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+          {actions.map((action) => (
+            <Button
+              key={action.path}
+              variant="secondary"
+              size="sm"
+              onClick={() => navigateTo(action.path)}
+              className="flex-shrink-0 min-w-[120px] h-16 flex-col items-center justify-center gap-1 text-xs"
+            >
+              <action.icon className="h-4 w-4" />
+              <span className="text-center leading-tight">{action.label}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: Vertical stack */}
+      <div className="hidden lg:block space-y-3">
         {actions.map((action) => (
           <Button
             key={action.path}
@@ -94,10 +106,6 @@ export function QuickActions({ role }: QuickActionsProps) {
             {action.label}
           </Button>
         ))}
-        <Button fullWidth variant="ghost" size="sm">
-          <Settings className="h-4 w-4 mr-2" />
-          Configuración
-        </Button>
       </div>
     </div>
   );

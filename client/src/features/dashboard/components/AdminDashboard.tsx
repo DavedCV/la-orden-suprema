@@ -14,6 +14,11 @@ export const AdminDashboard = React.memo(function AdminDashboard({
 }: AdminDashboardProps) {
   return (
     <>
+      {/* Quick Actions - Mobile Priority (top on mobile, sidebar on desktop) */}
+      <div className="lg:hidden mb-6">
+        <QuickActions role="admin" />
+      </div>
+
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <AdminStats data={data} />
@@ -35,9 +40,13 @@ export const AdminDashboard = React.memo(function AdminDashboard({
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar - Desktop Only Quick Actions, Always Visible Other Components */}
         <div className="space-y-6">
-          <QuickActions role="admin" />
+          {/* Quick Actions - Desktop Only (hidden on mobile) */}
+          <div className="hidden lg:block">
+            <QuickActions role="admin" />
+          </div>
+
           <SystemStatus />
         </div>
       </div>

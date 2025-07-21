@@ -42,6 +42,11 @@ export const AssassinDashboard = React.memo(function AssassinDashboard({
 
   return (
     <>
+      {/* Quick Actions - Mobile Priority (top on mobile, sidebar on desktop) */}
+      <div className="lg:hidden mb-6">
+        <QuickActions role="assassin" />
+      </div>
+
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <AssassinStats data={data} />
@@ -85,9 +90,12 @@ export const AssassinDashboard = React.memo(function AssassinDashboard({
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar - Desktop Only Quick Actions, Always Visible Other Components */}
         <div className="space-y-6">
-          <QuickActions role="assassin" />
+          {/* Quick Actions - Desktop Only (hidden on mobile) */}
+          <div className="hidden lg:block">
+            <QuickActions role="assassin" />
+          </div>
 
           {/* Priority Debts Summary */}
           <DebtsSummaryCard

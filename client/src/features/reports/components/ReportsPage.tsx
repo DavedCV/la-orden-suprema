@@ -289,7 +289,87 @@ export function ReportsPage() {
       {/* Header */}
       <header className="bg-orden-800 border-b border-orden-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
+          {/* Mobile layout: stack vertically */}
+          <div className="flex flex-col space-y-4 py-4 sm:hidden">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToDashboard}
+                className="text-orden-300 hover:text-orden-100"
+                aria-label="Volver al dashboard"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+
+              <div className="bg-purple-500/20 p-2 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-purple-400" />
+              </div>
+
+              <div className="flex-1">
+                <h1 className="text-lg font-bold text-orden-100">
+                  Reportes del Sistema
+                </h1>
+                <p className="text-sm text-orden-400">Análisis y métricas</p>
+              </div>
+            </div>
+
+            {/* Mobile controls */}
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-orden-400" aria-hidden="true" />
+                <select
+                  id="time-range-select-mobile"
+                  value={selectedTimeRange.value}
+                  onChange={(e) => handleTimeRangeChange(e.target.value)}
+                  className="flex-1 bg-orden-700 border border-orden-600 rounded px-3 py-2 text-sm text-orden-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  aria-label="Filtro de rango de tiempo"
+                >
+                  {TIME_RANGES.map((range) => (
+                    <option key={range.value} value={range.value}>
+                      {range.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  className="text-orden-300 hover:text-orden-100 flex-1 justify-center"
+                  aria-label="Actualizar datos"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
+                  Actualizar
+                </Button>
+
+                <select
+                  value={exportFormat}
+                  onChange={(e) =>
+                    setExportFormat(e.target.value as "json" | "csv")
+                  }
+                  className="bg-orden-700 border border-orden-600 rounded px-3 py-2 text-sm text-orden-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  aria-label="Formato de exportación"
+                >
+                  <option value="json">JSON</option>
+                  <option value="csv">CSV</option>
+                </select>
+
+                <Button
+                  onClick={handleExportReport}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  aria-label="Exportar reporte"
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop layout: horizontal */}
+          <div className="hidden sm:flex items-center justify-between py-4">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -345,11 +425,23 @@ export function ReportsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleRefresh}
-                className="text-orden-300 hover:text-orden-100"
+                className="text-orden-300 hover:text-orden-100 hidden lg:flex"
                 aria-label="Actualizar datos"
               >
                 <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
                 Actualizar
+              </Button>
+
+              {/* Refresh button for medium screens */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                className="text-orden-300 hover:text-orden-100 lg:hidden"
+                aria-label="Actualizar datos"
+                title="Actualizar"
+              >
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
               </Button>
 
               <div className="flex items-center space-x-2">
@@ -370,8 +462,8 @@ export function ReportsPage() {
                   className="bg-purple-600 hover:bg-purple-700"
                   aria-label="Exportar reporte"
                 >
-                  <Download className="h-4 w-4 mr-2" aria-hidden="true" />
-                  Exportar
+                  <Download className="h-4 w-4 lg:mr-2" aria-hidden="true" />
+                  <span className="hidden lg:inline">Exportar</span>
                 </Button>
               </div>
             </div>

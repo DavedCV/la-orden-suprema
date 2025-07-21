@@ -178,7 +178,45 @@ export function BloodMarkersPage() {
         role="banner"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
+          {/* Mobile layout: stack vertically */}
+          <div className="flex flex-col space-y-4 py-4 sm:hidden">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goBack}
+                className="text-orden-300 hover:text-orden-100"
+                aria-label="Volver a la página anterior"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+
+              <div className="bg-red-500/20 p-2 rounded-lg" aria-hidden="true">
+                <Skull className="h-6 w-6 text-red-400" />
+              </div>
+
+              <div className="flex-1">
+                <h1 className="text-lg font-bold text-orden-100">
+                  Marcadores de Sangre
+                </h1>
+                <p className="text-sm text-orden-400">
+                  Sistema de favores y deudas
+                </p>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleCreateModalOpen}
+              className="bg-red-600 hover:bg-red-700 w-full justify-center"
+              aria-label="Crear nueva solicitud de marcador de sangre"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva Solicitud
+            </Button>
+          </div>
+
+          {/* Desktop layout: horizontal */}
+          <div className="hidden sm:flex items-center justify-between py-4">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -215,7 +253,8 @@ export function BloodMarkersPage() {
               aria-label="Crear nueva solicitud de marcador de sangre"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Nueva Solicitud
+              <span className="hidden md:inline">Nueva Solicitud</span>
+              <span className="md:hidden">Nueva</span>
             </Button>
           </div>
         </div>

@@ -62,7 +62,42 @@ export function AssassinDirectoryPage() {
       {/* Header */}
       <header className="bg-orden-800 border-b border-orden-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
+          {/* Mobile layout: stack vertically */}
+          <div className="flex flex-col space-y-4 py-4 sm:hidden">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onBackToDashboard}
+                className="text-orden-300 hover:text-orden-100"
+                aria-label="Volver al dashboard"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+
+              <div className="bg-purple-500/20 p-2 rounded-lg">
+                <Users className="h-6 w-6 text-purple-400" />
+              </div>
+
+              <div className="flex-1">
+                <h1 className="text-lg font-bold text-orden-100">
+                  Directorio de Asesinos
+                </h1>
+                <p className="text-sm text-orden-400">
+                  Busca y conecta con otros miembros
+                </p>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm text-orden-400">
+                {assassins.length} asesinos encontrados
+              </p>
+            </div>
+          </div>
+
+          {/* Desktop layout: horizontal */}
+          <div className="hidden sm:flex items-center justify-between py-4">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"

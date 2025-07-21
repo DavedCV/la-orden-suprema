@@ -97,7 +97,41 @@ const PageHeader = memo(function PageHeader({
   return (
     <header className="bg-orden-800 border-b border-orden-700 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
+        {/* Mobile layout: stack vertically */}
+        <div className="flex flex-col space-y-4 py-4 sm:hidden">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onGoToDashboard}
+              className="text-orden-300 hover:text-orden-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+
+            <div className="bg-gold-500/20 p-2 rounded-lg">
+              <Target className="h-6 w-6 text-gold-400" />
+            </div>
+
+            <div className="flex-1">
+              <h1 className="text-lg font-bold text-gold-400">
+                Gestión de Contratos
+              </h1>
+              <p className="text-sm text-orden-400">Administrar misiones</p>
+            </div>
+          </div>
+
+          <Button
+            onClick={onCreateMission}
+            className="bg-gold-600 hover:bg-gold-700 w-full justify-center"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Misión
+          </Button>
+        </div>
+
+        {/* Desktop layout: horizontal */}
+        <div className="hidden sm:flex justify-between items-center py-4">
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
@@ -129,7 +163,8 @@ const PageHeader = memo(function PageHeader({
             className="bg-gold-600 hover:bg-gold-700"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Nueva Misión
+            <span className="hidden md:inline">Nueva Misión</span>
+            <span className="md:hidden">Nueva</span>
           </Button>
         </div>
       </div>

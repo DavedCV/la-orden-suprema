@@ -1,56 +1,59 @@
-import { memo } from "react";
+import React from "react";
+import { MISSION_STAT_COLORS } from "../constants";
 
 interface StatCardProps {
   title: string;
-  value: number;
-  color: "blue" | "gray" | "yellow" | "green" | "red";
-  isActive: boolean;
-  onClick: () => void;
+  value: string | number;
+  color: keyof typeof MISSION_STAT_COLORS;
+  icon?: React.ReactNode;
+  subtitle?: string;
+  isActive?: boolean;
+  onClick?: () => void;
 }
 
-const colorClasses = {
-  blue: {
-    active: "bg-blue-500/20 border-blue-500 text-blue-400",
-    hover: "hover:bg-blue-500/10 hover:border-blue-500/50",
-  },
-  gray: {
-    active: "bg-gray-500/20 border-gray-500 text-gray-400",
-    hover: "hover:bg-gray-500/10 hover:border-gray-500/50",
-  },
-  yellow: {
-    active: "bg-yellow-500/20 border-yellow-500 text-yellow-400",
-    hover: "hover:bg-yellow-500/10 hover:border-yellow-500/50",
-  },
-  green: {
-    active: "bg-green-500/20 border-green-500 text-green-400",
-    hover: "hover:bg-green-500/10 hover:border-green-500/50",
-  },
-  red: {
-    active: "bg-red-500/20 border-red-500 text-red-400",
-    hover: "hover:bg-red-500/10 hover:border-red-500/50",
-  },
-} as const;
+export const StatCard: React.FC<StatCardProps> = React.memo(
+  ({ title, value, color, icon, subtitle, isActive, onClick }) => {
+    const colorClass = MISSION_STAT_COLORS[color];
+    const [textColor, bgColor, borderColor] = colorClass.split(" ");
 
-export const StatCard = memo(function StatCard({
-  title,
-  value,
-  color,
-  isActive,
-  onClick,
-}: StatCardProps) {
-  const classes = colorClasses[color];
+    return (
+      <div
+        className={`card p-4 cursor-pointer transition-all hover:scale-105 ${
+          isActive ? `border ${borderColor} shadow-lg` : ""
+        } ${onClick ? "hover:border-orden-600" : ""}`}
+        onClick={onClick}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={
+          onClick
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onClick();
+                }
+              }
+            : undefined
+        }
+        aria-pressed={isActive}
+        aria-label={`${title}: ${value}${subtitle ? `. ${subtitle}` : ""}`}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-xs font-medium text-orden-300">{title}</h4>
+          {icon && (
+            <div className={`p-1.5 rounded ${bgColor}`}>
+              <div className={textColor}>{icon}</div>
+            </div>
+          )}
+        </div>
+        <div>
+          <p className={`text-lg font-bold ${textColor}`}>{value}</p>
+          {subtitle && (
+            <p className="text-xs text-orden-500 mt-1">{subtitle}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+);
 
-  return (
-    <button
-      onClick={onClick}
-      className={`card p-4 text-center transition-all cursor-pointer border focus:outline-none focus:ring-2 focus:ring-gold-500 focus:ring-offset-2 focus:ring-offset-orden-900 ${
-        isActive ? classes.active : `${classes.hover} hover:scale-105`
-      }`}
-      aria-pressed={isActive}
-      aria-label={`Filter by ${title}: ${value} missions`}
-    >
-      <div className="text-2xl font-bold text-orden-100 mb-1">{value}</div>
-      <div className="text-xs text-orden-400">{title}</div>
-    </button>
-  );
-});
+StatCard.displayName = "StatCard";

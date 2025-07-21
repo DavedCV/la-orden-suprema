@@ -6,11 +6,11 @@ import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
 import { useNavigation } from "../../../shared/hooks/useNavigation";
 import { useMissionManagement } from "../hooks/useMissionManagement";
 import { StatCard } from "./StatCard";
-import { MissionCard } from "./MissionCard";
+import { AdminMissionCard } from "./AdminMissionCard";
 import { MissionErrorBoundary } from "./MissionErrorBoundary";
 import { CreateMissionForm } from "./CreateMissionForm";
 import { AssignMissionForm } from "./AssignMissionForm";
-import { MissionDetailsModal } from "./MissionDetailsModal";
+import { AdminMissionDetailsModal } from "./AdminMissionDetailsModal";
 import {
   MISSION_FILTER_CONFIG,
   SEARCH_PLACEHOLDER,
@@ -305,7 +305,7 @@ export function MissionManagementPage() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredMissions.map((mission) => (
-                <MissionCard
+                <AdminMissionCard
                   key={mission.id}
                   mission={mission}
                   assassins={assassins}
@@ -337,16 +337,16 @@ export function MissionManagementPage() {
         )}
 
         {showDetailsModal && selectedMission && (
-          <MissionDetailsModal
+          <AdminMissionDetailsModal
             mission={selectedMission}
             assassins={assassins}
             onClose={handleModalClose}
-            onEdit={(mission) => {
+            onEdit={(mission: Mission) => {
               setSelectedMission(mission);
               setShowDetailsModal(false);
               setShowCreateModal(true);
             }}
-            onAssign={(mission) => {
+            onAssign={(mission: Mission) => {
               setSelectedMission(mission);
               setShowDetailsModal(false);
               setShowAssignModal(true);

@@ -1,184 +1,163 @@
-import { memo } from "react";
-import {
-  Target,
-  Edit3,
-  UserPlus,
-  Calendar,
-  Coins,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Eye,
-  Users,
-} from "lucide-react";
+import React from "react";
+import { Target, Calendar, Coins, Eye, Play } from "lucide-react";
 import { Button } from "../../../shared/components/Button";
+import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
 import { formatDate, formatCurrency } from "../../../shared/utils";
-import type { Mission, Assassin } from "../../../shared/types";
+import { getStatusConfig, getPriorityConfig } from "../constants";
+import type { Mission } from "../../../shared/types";
+import type { MissionWithActions } from "../../assassins/hooks/useAssassinMissions";
 
 interface MissionCardProps {
-  mission: Mission;
-  assassins: Assassin[];
-  onEdit: (mission: Mission) => void;
-  onAssign: (mission: Mission) => void;
+  mission: MissionWithActions;
+  onStartMission: (missionId: string) => void;
   onViewDetails: (mission: Mission) => void;
+  isStarting: boolean;
 }
 
-const statusConfig = {
-  "No Asignada": {
-    color: "text-gray-400 bg-gray-500/20",
-    icon: Clock,
-  },
-  Asignada: {
-    color: "text-blue-400 bg-blue-500/20",
-    icon: UserPlus,
-  },
-  "En Progreso": {
-    color: "text-yellow-400 bg-yellow-500/20",
-    icon: Target,
-  },
-  Completada: {
-    color: "text-green-400 bg-green-500/20",
-    icon: CheckCircle,
-  },
-  Fallida: {
-    color: "text-red-400 bg-red-500/20",
-    icon: AlertTriangle,
-  },
-} as const;
+export const MissionCard: React.FC<MissionCardProps> = React.memo(
+  ({ mission, onStartMission, onViewDetails, isStarting }) => {
+    const statusConfig = getStatusConfig(mission.status);
+    const priorityConfig = getPriorityConfig(mission.priority);
+    const StatusIcon = statusConfig.icon;
 
-export const MissionCard = memo(function MissionCard({
-  mission,
-  assassins,
-  onEdit,
-  onAssign,
-  onViewDetails,
-}: MissionCardProps) {
-  const statusInfo = statusConfig[
-    mission.status as keyof typeof statusConfig
-  ] || {
-    color: "text-orden-400 bg-orden-700/50",
-    icon: Clock,
-  };
+    const handleStartClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onStartMission(mission.id);
+    };
 
-  const StatusIcon = statusInfo.icon;
+    const handleDetailsClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onViewDetails(mission);
+    };
 
-  const assignedAssassin = mission.assignedTo
-    ? assassins.find((a) => a.id === mission.assignedTo)
-    : null;
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onViewDetails(mission);
+      }
+    };
 
-  const canAssign = mission.status === "No Asignada";
-
-  return (
-    <article
-      className="card p-6 hover:border-gold-500/30 transition-colors focus-within:border-gold-500/50"
-      role="article"
-      aria-labelledby={`mission-${mission.id}-title`}
-    >
-      {/* Header */}
-      <header className="flex items-start justify-between mb-4">
-        <div className="flex-1 min-w-0">
-          <h3
-            id={`mission-${mission.id}-title`}
-            className="text-lg font-semibold text-orden-100 mb-1 truncate"
-            title={mission.title}
-          >
-            {mission.title}
-          </h3>
-          <p
-            className="text-sm text-orden-400 line-clamp-2"
-            title={mission.description}
-          >
-            {mission.description}
-          </p>
+    return (
+      <div
+        className={`card p-6 hover:border-gold-500/30 transition-all hover:shadow-lg hover:scale-[1.02] cursor-pointer ${
+          mission.isOverdue ? "border-red-500/30 bg-red-500/5" : ""
+        }`}
+        onClick={() => onViewDetails(mission)}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="article"
+        aria-label={`Misión: ${mission.title}`}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-lg font-semibold text-orden-100">
+                {mission.title}
+              </h3>
+              {mission.isOverdue && (
+                <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full">
+                  Vencida
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-orden-400 line-clamp-2 leading-relaxed">
+              {mission.description}
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <div
+              className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}
+            >
+              <StatusIcon className="h-3 w-3" />
+              <span>{statusConfig.label}</span>
+            </div>
+            <div
+              className={`px-2 py-1 rounded-full text-xs font-medium ${priorityConfig.color}`}
+            >
+              {priorityConfig.label}
+            </div>
+          </div>
         </div>
-        <div
-          className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ml-2 ${statusInfo.color}`}
-          role="status"
-          aria-label={`Mission status: ${mission.status}`}
-        >
-          <StatusIcon className="h-4 w-4" aria-hidden="true" />
-          <span>{mission.status}</span>
-        </div>
-      </header>
 
-      {/* Details */}
-      <div className="space-y-3 mb-4">
-        {mission.targetName && (
-          <div className="flex items-center text-sm" title="Target">
-            <Target
-              className="h-4 w-4 text-orden-400 mr-2 flex-shrink-0"
-              aria-hidden="true"
-            />
-            <span className="text-orden-300 truncate">
-              {mission.targetName}
+        {/* Mission Details */}
+        <div className="space-y-3 mb-4">
+          <div className="flex items-center text-sm">
+            <Target className="h-4 w-4 text-orden-400 mr-2" />
+            <span className="text-orden-300">{mission.targetName}</span>
+          </div>
+
+          <div className="flex items-center text-sm">
+            <Coins className="h-4 w-4 text-gold-400 mr-2" />
+            <span className="text-gold-400 font-medium">
+              {formatCurrency(mission.reward)}
             </span>
           </div>
-        )}
 
-        <div className="flex items-center text-sm" title="Reward">
-          <Coins
-            className="h-4 w-4 text-gold-400 mr-2 flex-shrink-0"
-            aria-hidden="true"
-          />
-          <span className="text-gold-400 font-medium">
-            {formatCurrency(mission.reward)}
-          </span>
-        </div>
-
-        <div className="flex items-center text-sm" title="Deadline">
-          <Calendar
-            className="h-4 w-4 text-orden-400 mr-2 flex-shrink-0"
-            aria-hidden="true"
-          />
-          <span className="text-orden-300">{formatDate(mission.deadline)}</span>
-        </div>
-
-        {assignedAssassin && (
-          <div className="flex items-center text-sm" title="Assigned Assassin">
-            <Users
-              className="h-4 w-4 text-blue-400 mr-2 flex-shrink-0"
-              aria-hidden="true"
-            />
-            <span className="text-blue-400 truncate">
-              {assignedAssassin.alias}
+          <div className="flex items-center text-sm">
+            <Calendar className="h-4 w-4 text-orden-400 mr-2" />
+            <span
+              className={`${
+                mission.isOverdue ? "text-red-400" : "text-orden-300"
+              }`}
+            >
+              {formatDate(mission.deadline)}
             </span>
+            {mission.daysRemaining !== undefined && (
+              <span
+                className={`ml-2 text-xs ${
+                  mission.daysRemaining < 0
+                    ? "text-red-400"
+                    : mission.daysRemaining <= 3
+                    ? "text-yellow-400"
+                    : "text-orden-500"
+                }`}
+              >
+                (
+                {mission.daysRemaining < 0
+                  ? `${Math.abs(mission.daysRemaining)} días vencida`
+                  : mission.daysRemaining === 0
+                  ? "Vence hoy"
+                  : `${mission.daysRemaining} días restantes`}
+                )
+              </span>
+            )}
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Actions */}
-      <footer className="flex gap-2">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => onViewDetails(mission)}
-          className="flex-1"
-          aria-label={`View details for ${mission.title}`}
-        >
-          <Eye className="h-4 w-4 mr-1" aria-hidden="true" />
-          Ver
-        </Button>
-
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onEdit(mission)}
-          aria-label={`Edit ${mission.title}`}
-        >
-          <Edit3 className="h-4 w-4" aria-hidden="true" />
-        </Button>
-
-        {canAssign && (
+        {/* Actions */}
+        <div className="flex gap-2 pt-3 border-t border-orden-700/50">
           <Button
             size="sm"
-            variant="primary"
-            onClick={() => onAssign(mission)}
-            aria-label={`Assign ${mission.title} to an assassin`}
+            variant="ghost"
+            onClick={handleDetailsClick}
+            className="flex-1 text-orden-300 hover:text-orden-100"
+            aria-label={`Ver detalles de ${mission.title}`}
           >
-            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            <Eye className="h-4 w-4 mr-1" />
+            Detalles
           </Button>
-        )}
-      </footer>
-    </article>
-  );
-});
+
+          {mission.canStart && (
+            <Button
+              size="sm"
+              onClick={handleStartClick}
+              disabled={isStarting}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              aria-label={`Iniciar misión ${mission.title}`}
+            >
+              {isStarting ? (
+                <LoadingSpinner size="sm" className="mr-1" />
+              ) : (
+                <Play className="h-4 w-4 mr-1" />
+              )}
+              Iniciar
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+);
+
+MissionCard.displayName = "MissionCard";

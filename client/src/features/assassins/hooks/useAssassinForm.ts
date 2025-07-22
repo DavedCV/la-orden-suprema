@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "../../../shared/utils/toast";
+import { apiService } from "../../../shared/services/api";
 import type { Assassin } from "../../../shared/types";
 
 // Schema for editing assassin
@@ -16,10 +17,6 @@ const editAssassinSchema = z.object({
     .string()
     .min(2, "El nombre real debe tener al menos 2 caracteres")
     .max(100, "El nombre real no puede exceder 100 caracteres"),
-  email: z
-    .string()
-    .email("Formato de email inválido")
-    .min(1, "El email es requerido"),
   lastKnownLocation: z
     .string()
     .max(100, "La ubicación no puede exceder 100 caracteres")
@@ -28,14 +25,14 @@ const editAssassinSchema = z.object({
     .number()
     .min(0, "Las monedas de oro no pueden ser negativas")
     .max(1000000, "Cantidad máxima excedida"),
+  status: z.enum(["Activo", "Retirado", "Excommunicado"], {
+    required_error: "El estado es requerido",
+  }),
 });
 
 type EditAssassinFormData = z.infer<typeof editAssassinSchema>;
 
-export const useAssassinForm = (
-  assassin: Assassin,
-  onSuccess?: () => void
-) => {
+export const useAssassinForm = (assassin: Assassin, onSuccess?: () => void) => {
   const queryClient = useQueryClient();
   const [skills, setSkills] = useState<string[]>(assassin.skills || []);
   const [newSkill, setNewSkill] = useState("");
@@ -46,19 +43,19 @@ export const useAssassinForm = (
     defaultValues: {
       alias: assassin.alias,
       realName: assassin.realName || "",
-      email: assassin.email,
       lastKnownLocation: assassin.lastKnownLocation || "",
       goldCoins: assassin.goldCoins,
+      status: assassin.status,
     },
   });
 
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async (data: EditAssassinFormData & { skills: string[] }) => {
-      // Mock implementation - in real app would call API
-      console.log("Updating assassin:", assassin.id, data);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return { success: true };
+      return apiService.updateAssassin(assassin.id, {
+        ...data,
+        skills,
+      });
     },
     onSuccess: () => {
       toast({

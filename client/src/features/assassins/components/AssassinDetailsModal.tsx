@@ -2,14 +2,15 @@ import { memo, useEffect } from "react";
 import {
   User,
   Skull,
-  MessageCircle,
   AlertTriangle,
   CheckCircle,
   Clock,
   X,
+  Edit,
 } from "lucide-react";
 import { Button } from "../../../shared/components/Button";
 import { formatDate } from "../../../shared/utils";
+import { useAuthStore } from "../../../shared/store/authStore";
 import type {
   Assassin,
   BloodMarker,
@@ -26,13 +27,18 @@ interface AssassinDetailsModalProps {
   } | null;
   onClose: () => void;
   onUpdate?: () => void; // For backward compatibility
+  onEdit?: (assassin: Assassin) => void; // New prop for edit functionality
 }
 
 export const AssassinDetailsModal = memo(function AssassinDetailsModal({
   assassin,
   relationship,
   onClose,
+  onEdit,
 }: AssassinDetailsModalProps) {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "admin";
+
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
@@ -136,7 +142,7 @@ export const AssassinDetailsModal = memo(function AssassinDetailsModal({
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-gold-400">
-                {assassin.goldCoins.toLocaleString()}
+                {(assassin.goldCoins || 0).toLocaleString()}
               </div>
               <div className="text-sm text-orden-400">Monedas de Oro</div>
             </div>
@@ -225,10 +231,13 @@ export const AssassinDetailsModal = memo(function AssassinDetailsModal({
           <Button variant="secondary" onClick={onClose}>
             Cerrar
           </Button>
-          {assassin.status === "Activo" && (
-            <Button className="bg-purple-600 hover:bg-purple-700">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Contactar
+          {isAdmin && (
+            <Button
+              onClick={() => onEdit?.(assassin)}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
             </Button>
           )}
         </div>

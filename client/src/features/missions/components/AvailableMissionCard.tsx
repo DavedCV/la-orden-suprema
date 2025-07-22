@@ -113,16 +113,16 @@ export function AvailableMissionCard({
       className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50"
       aria-label={
         timeInfo.isOverdue
-          ? "No se puede postular a misión vencida"
+          ? "No se puede tomar misión vencida"
           : isApplying
-          ? "Enviando postulación"
-          : "Postularme a esta misión"
+          ? "Tomando misión"
+          : "Tomar esta misión"
       }
     >
       {isApplying ? (
         <>
           <LoadingSpinner size="sm" className="mr-2" />
-          Enviando...
+          Tomando...
         </>
       ) : timeInfo.isOverdue ? (
         <>
@@ -132,7 +132,7 @@ export function AvailableMissionCard({
       ) : (
         <>
           <Send className="h-4 w-4 mr-2" aria-hidden="true" />
-          Postularme
+          Tomar Misión
         </>
       )}
     </Button>

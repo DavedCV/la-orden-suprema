@@ -208,7 +208,7 @@ function AvailableMissionItem({
               onNavigate("/available-missions");
             }}
           >
-            Ver y Postularme
+            Ver y Tomar
           </Button>
         </div>
       </div>

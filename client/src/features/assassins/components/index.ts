@@ -4,6 +4,7 @@ export { AssassinDirectoryPage } from "./AssassinDirectoryPage";
 export { AssassinManagementPage } from "./AssassinManagementPage";
 export { AssassinMissionsPage } from "./AssassinMissionsPage";
 export { CreateAssassinForm } from "./CreateAssassinForm";
+export { EditAssassinModal } from "./EditAssassinModal";
 export { LocationMapPage } from "./LocationMapPage";
 export { AssassinFilters } from "./AssassinFilters";
 export { AssassinList } from "./AssassinList";

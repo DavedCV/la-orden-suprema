@@ -17,7 +17,7 @@ export function useAssassinDirectory() {
     error: assassinsError
   } = useQuery({
     queryKey: ["assassins"],
-    queryFn: () => apiService.getAssassins(),
+    queryFn: () => apiService.getAssassins(1, 1000), // Get up to 1000 assassins for directory
   });
 
   // Fetch blood markers to show relationships

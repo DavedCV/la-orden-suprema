@@ -47,13 +47,15 @@ export type BloodMarkerStatus = 'Solicitud Pendiente' | 'Pendiente' | 'Pago Pend
 
 export interface BloodMarker {
   id: string;
-  debtorId: string;
-  creditorId: string;
+  debtorId: string; // For API compatibility - this is the requester who becomes debtor when accepted
+  creditorId: string; // The person who will be owed the favor
   description: string;
   createdAt: string;
   status: BloodMarkerStatus;
-  paidAt?: string;
-  confirmedAt?: string;
+  paidAt?: string; // When debtor marked as paid
+  confirmedAt?: string; // When creditor confirmed payment
+  rejectedAt?: string; // When creditor rejected the request
+  rejectionReason?: string; // Reason for rejection
 }
 
 // API Response Types
@@ -97,9 +99,8 @@ export interface CreateMissionForm {
 }
 
 export interface CreateBloodMarkerForm {
-  debtorId: string;
-  creditorId: string;
-  description: string;
+  creditorId: string; // The person who will be owed the favor
+  description: string; // Description of the favor/debt
 }
 
 export interface RespondToBloodMarkerForm {

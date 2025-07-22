@@ -8,6 +8,13 @@ export default defineConfig({
     port: 3000,
     host: true,
     open: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   preview: {
     port: 3001,
@@ -23,5 +30,10 @@ export default defineConfig({
         },
       },
     },
+  },
+  define: {
+    // Provide default values for environment variables
+    'import.meta.env.VITE_API_URL': JSON.stringify('http://localhost:3001/api'),
+    'import.meta.env.VITE_NODE_ENV': JSON.stringify('development'),
   },
 })

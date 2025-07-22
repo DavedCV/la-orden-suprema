@@ -41,7 +41,7 @@ export function useMissionManagement() {
     error: assassinsError,
   } = useQuery({
     queryKey: ["assassins"],
-    queryFn: () => apiService.getAssassins(),
+    queryFn: () => apiService.getAssassins(1, 1000), // Get all assassins for mission assignment
   });
 
   const missions = missionsData?.data || [];

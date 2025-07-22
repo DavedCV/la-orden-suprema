@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../shared/components/Button";
 import { Input } from "../../../shared/components/Input";
 import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
@@ -30,11 +31,46 @@ export function AssignMissionForm({
   onClose,
   onSuccess,
 }: AssignMissionFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
   const [selectedAssassin, setSelectedAssassin] = useState<Assassin | null>(
     null
   );
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Mission assignment mutation
+  const assignMissionMutation = useMutation({
+    mutationFn: ({
+      missionId,
+      assassinId,
+    }: {
+      missionId: string;
+      assassinId: string;
+    }) => apiService.assignMission(missionId, assassinId),
+    onSuccess: () => {
+      // Invalidate and refetch relevant queries
+      queryClient.invalidateQueries({ queryKey: ["missions"] });
+      queryClient.invalidateQueries({ queryKey: ["assassin-missions"] });
+      queryClient.invalidateQueries({ queryKey: ["assassins"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["available-missions"] });
+
+      toast({
+        type: "success",
+        title: "Misión asignada",
+        message: `La misión "${mission.title}" ha sido asignada a ${selectedAssassin?.alias}`,
+      });
+
+      onSuccess();
+    },
+    onError: (error) => {
+      console.error("Error assigning mission:", error);
+      toast({
+        type: "error",
+        title: "Error",
+        message: "Error al asignar la misión. Inténtalo de nuevo.",
+      });
+    },
+  });
 
   // Filter assassins based on search
   const filteredAssassins = assassins.filter(
@@ -44,7 +80,7 @@ export function AssignMissionForm({
       assassin.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAssign = async () => {
+  const handleAssign = () => {
     if (!selectedAssassin) {
       toast({
         type: "error",
@@ -54,27 +90,10 @@ export function AssignMissionForm({
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-
-      await apiService.assignMission(mission.id, selectedAssassin.id);
-
-      toast({
-        type: "success",
-        title: "Misión asignada",
-        message: `La misión "${mission.title}" ha sido asignada a ${selectedAssassin.alias}`,
-      });
-
-      onSuccess();
-    } catch {
-      toast({
-        type: "error",
-        title: "Error",
-        message: "Error al asignar la misión. Inténtalo de nuevo.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    assignMissionMutation.mutate({
+      missionId: mission.id,
+      assassinId: selectedAssassin.id,
+    });
   };
 
   const getPriorityColor = (priority?: string) => {
@@ -183,7 +202,7 @@ export function AssignMissionForm({
                     <div className="flex items-center text-xs">
                       <Coins className="h-3 w-3 text-gold-400 mr-1" />
                       <span className="text-gold-400">
-                        {formatCurrency(selectedAssassin.goldCoins)}
+                        {formatCurrency(selectedAssassin.goldCoins || 0)}
                       </span>
                     </div>
                   </div>
@@ -242,16 +261,18 @@ export function AssignMissionForm({
                   variant="ghost"
                   onClick={onClose}
                   className="flex-1"
-                  disabled={isSubmitting}
+                  disabled={assignMissionMutation.isPending}
                 >
                   Cancelar
                 </Button>
                 <Button
                   onClick={handleAssign}
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  disabled={!selectedAssassin || isSubmitting}
+                  disabled={
+                    !selectedAssassin || assignMissionMutation.isPending
+                  }
                 >
-                  {isSubmitting ? (
+                  {assignMissionMutation.isPending ? (
                     <>
                       <LoadingSpinner size="sm" className="mr-2" />
                       Asignando...
@@ -311,7 +332,7 @@ function AssassinCard({
         <div className="text-right">
           <div className="flex items-center text-xs text-gold-400 mb-1">
             <Coins className="h-3 w-3 mr-1" />
-            {formatCurrency(assassin.goldCoins)}
+            {formatCurrency(assassin.goldCoins || 0)}
           </div>
           <p className="text-xs text-orden-400">
             {assassin.completedMissions} misiones

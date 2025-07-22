@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiService } from "../../../shared/services/api";
+import { useAuthStore } from "../../../shared/store/authStore";
 import { toast } from "../../../shared/utils/toast";
 
 interface ProfileUpdateData {
@@ -15,15 +16,21 @@ interface UseProfileUpdateOptions {
 
 export function useProfileUpdate(options: UseProfileUpdateOptions = {}) {
   const queryClient = useQueryClient();
+  const { updateUser } = useAuthStore();
 
   const profileUpdateMutation = useMutation({
     mutationFn: (data: ProfileUpdateData) => apiService.updateProfile(data),
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast({
         type: "success",
         title: "Perfil actualizado",
         message: "Tu información ha sido actualizada exitosamente",
       });
+
+      // Update auth store with new user data
+      if (response.success && response.data) {
+        updateUser(response.data);
+      }
 
       // Invalidate profile queries to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ["profile"] });
@@ -32,6 +39,8 @@ export function useProfileUpdate(options: UseProfileUpdateOptions = {}) {
       options.onSuccess?.();
     },
     onError: (error: unknown) => {
+      console.error("Profile update error:", error);
+
       toast({
         type: "error",
         title: "Error al actualizar perfil",

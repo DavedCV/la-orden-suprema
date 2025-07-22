@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "../../../shared/store/authStore";
 import { apiService } from "../../../shared/services/api";
 import { toast } from "../../../shared/utils/toast";
 import type { Mission } from "../../../shared/types";
@@ -29,7 +28,6 @@ export interface MissionWithActions extends Mission {
 }
 
 export function useAssassinMissions() {
-  const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<MissionFilter>("all");
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
@@ -37,10 +35,10 @@ export function useAssassinMissions() {
 
   const queryClient = useQueryClient();
 
-  // Fetch missions
+  // Fetch missions assigned to current assassin
   const { data: missionsData, isLoading, error } = useQuery({
-    queryKey: ["missions"],
-    queryFn: () => apiService.getMissions(),
+    queryKey: ["assassin-missions"],
+    queryFn: () => apiService.getAssassinMissions(),
   });
 
   // Start mission mutation
@@ -48,7 +46,7 @@ export function useAssassinMissions() {
     mutationFn: (missionId: string) =>
       apiService.updateMissionStatus(missionId, "En Progreso"),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["missions"] });
+      queryClient.invalidateQueries({ queryKey: ["assassin-missions"] });
       queryClient.invalidateQueries({ queryKey: ["assassin-dashboard"] });
       toast({
         type: "success",
@@ -74,20 +72,18 @@ export function useAssassinMissions() {
 
   // Process missions for current assassin with enhanced data
   const assassinMissions: MissionWithActions[] = useMemo(() => {
-    return missions
-      .filter((mission) => mission.assignedTo === user?.id)
-      .map((mission) => {
-        const daysRemaining = calculateDaysRemaining(mission.deadline);
-        const missionIsOverdue = isOverdue(mission.deadline, mission.status);
+    return missions.map((mission) => {
+      const daysRemaining = calculateDaysRemaining(mission.deadline);
+      const missionIsOverdue = isOverdue(mission.deadline, mission.status);
 
-        return {
-          ...mission,
-          canStart: mission.status === "Asignada",
-          daysRemaining,
-          isOverdue: missionIsOverdue,
-        };
-      });
-  }, [missions, user?.id]);
+      return {
+        ...mission,
+        canStart: mission.status === "Asignada",
+        daysRemaining,
+        isOverdue: missionIsOverdue,
+      };
+    });
+  }, [missions]);
 
   // Apply search and filter logic
   const filteredMissions = useMemo(() => {

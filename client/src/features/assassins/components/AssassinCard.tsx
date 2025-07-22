@@ -6,7 +6,6 @@ import {
   Skull,
   TrendingUp,
   Eye,
-  MessageCircle,
   Clock,
   User,
 } from "lucide-react";
@@ -106,7 +105,7 @@ export const AssassinCard = memo(function AssassinCard({
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-gold-400">
-            {Math.floor(assassin.goldCoins / 1000)}K
+            {Math.floor((assassin.goldCoins || 0) / 1000)}K
           </div>
           <div className="text-xs text-orden-400">Monedas</div>
         </div>
@@ -151,16 +150,6 @@ export const AssassinCard = memo(function AssassinCard({
           <Eye className="h-4 w-4 mr-2" />
           Ver Detalles
         </Button>
-        {assassin.status === "Activo" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-purple-400 hover:text-purple-300"
-            aria-label={`Contactar a ${assassin.alias}`}
-          >
-            <MessageCircle className="h-4 w-4" />
-          </Button>
-        )}
       </div>
     </div>
   );

@@ -39,7 +39,7 @@ export function FirstLoginModal({ onPasswordChanged }: FirstLoginModalProps) {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
 
   const {
     register,
@@ -57,6 +57,15 @@ export function FirstLoginModal({ onPasswordChanged }: FirstLoginModalProps) {
       setIsSubmitting(true);
 
       await apiService.changePassword(data.currentPassword, data.newPassword);
+
+      // Update user state to reflect password change
+      if (user) {
+        updateUser({
+          ...user,
+          isFirstLogin: false,
+          temporaryPassword: false,
+        });
+      }
 
       toast({
         type: "success",

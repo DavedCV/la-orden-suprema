@@ -160,8 +160,7 @@ export const updateMissionSchema = Joi.object({
     .max(100000)
     .optional(),
   deadline: Joi.date()
-    .greater('now')
-    .optional(),
+    .optional(), // Remove the 'greater than now' requirement for updates - let the controller handle this
   priority: Joi.string()
     .valid('low', 'medium', 'high')
     .optional(),

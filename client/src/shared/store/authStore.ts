@@ -6,18 +6,25 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  lastActivity: number;
   login: (user: User, token: string) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
   updateUser: (user: User) => void;
+  updateLastActivity: () => void;
+  isTokenExpired: () => boolean;
 }
+
+// Token expiration check (7 days as per backend)
+const TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      lastActivity: Date.now(),
 
       login: (user: User, token: string) => {
         localStorage.setItem('token', token);
@@ -25,6 +32,7 @@ export const useAuthStore = create<AuthState>()(
           user,
           isAuthenticated: true,
           isLoading: false,
+          lastActivity: Date.now(),
         });
       },
 
@@ -34,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           isAuthenticated: false,
           isLoading: false,
+          lastActivity: 0,
         });
       },
 
@@ -42,7 +51,20 @@ export const useAuthStore = create<AuthState>()(
       },
 
       updateUser: (user: User) => {
-        set({ user });
+        set({
+          user,
+          isAuthenticated: true,
+          lastActivity: Date.now(),
+        });
+      },
+
+      updateLastActivity: () => {
+        set({ lastActivity: Date.now() });
+      },
+
+      isTokenExpired: () => {
+        const { lastActivity } = get();
+        return Date.now() - lastActivity > TOKEN_EXPIRY_TIME;
       },
     }),
     {
@@ -50,7 +72,14 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        lastActivity: state.lastActivity,
       }),
+      // Check token expiration on store rehydration
+      onRehydrateStorage: () => (state) => {
+        if (state?.isTokenExpired?.()) {
+          state.logout();
+        }
+      },
     }
   )
 );

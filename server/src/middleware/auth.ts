@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { AuthRequest, JWTPayload, UserRole } from '../types';
 
+// Use the SAME JWT_SECRET loading logic as jwt.ts
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
+
 // Middleware to authenticate JWT tokens
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -16,16 +19,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error: JWT secret not configured.',
-      });
-      return;
-    }
-
-    const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
 
     // Fetch user from database to ensure user still exists and is active
     const user = await User.findById(decoded.userId).select('-password');
@@ -117,13 +111,7 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
       return;
     }
 
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      next();
-      return;
-    }
-
-    const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     const user = await User.findById(decoded.userId).select('-password');
 
     if (user) {

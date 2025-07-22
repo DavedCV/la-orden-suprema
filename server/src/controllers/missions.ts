@@ -145,7 +145,7 @@ export const updateMission = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     // Don't allow updating assigned missions unless changing status
-    if (mission.assignedTo && updateData.status !== mission.status) {
+    if (mission.assignedTo && updateData.status !== undefined && updateData.status !== mission.status) {
       // Only allow certain status transitions
       const allowedTransitions = ['Asignada', 'En Progreso', 'Completada', 'Fallida'];
       if (!allowedTransitions.includes(updateData.status)) {

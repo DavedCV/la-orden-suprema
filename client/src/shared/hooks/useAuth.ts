@@ -1,109 +1,141 @@
-import { useCallback } from 'react';
+import { useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { apiService } from '../services/api';
+import type { LoginForm, User } from '../types';
 import { toast } from '../utils/toast';
-import type { LoginFormData } from '../types/auth';
 
-export function useAuth() {
-  const { user, isAuthenticated, isLoading, login, logout, setLoading } = useAuthStore();
+export const useAuth = () => {
+  const { user, isAuthenticated, isLoading, login, logout, setLoading, updateUser } = useAuthStore();
 
-  const handleLogin = useCallback(async (credentials: LoginFormData) => {
+  // Validate token on app start
+  useEffect(() => {
+    const validateToken = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await apiService.validateToken();
+
+        if (response.success && response.data) {
+          updateUser(response.data);
+        } else {
+          // Invalid token, clear it
+          localStorage.removeItem('token');
+          logout();
+        }
+      } catch (error) {
+        console.error('Token validation failed:', error);
+        localStorage.removeItem('token');
+        logout();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    validateToken();
+  }, [setLoading, updateUser, logout]);
+
+  const handleLogin = async (credentials: LoginForm): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
+
+      // Clear any existing invalid tokens first
+      localStorage.removeItem('token');
 
       const response = await apiService.login(credentials);
 
       if (response.success && response.data) {
-        login(response.data.user, response.data.token);
+        const { user, token } = response.data;
+        login(user, token);
 
         toast({
           type: 'success',
-          title: '¡Bienvenido de vuelta!',
-          message: `Hola, ${response.data.user.alias}`,
+          title: 'Bienvenido a La Orden Suprema',
+          message: response.message || `Hola, ${user.alias}`,
         });
 
         return { success: true };
       } else {
+        const errorMessage = response.message || 'Error desconocido durante el login';
         toast({
           type: 'error',
           title: 'Error de autenticación',
-          message: response.message || 'Credenciales inválidas',
+          message: errorMessage,
         });
-
-        return {
-          success: false,
-          error: response.message || 'Credenciales inválidas'
-        };
+        return { success: false, error: errorMessage };
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = (error instanceof Error ? error.message : 'Error de conexión. Verifique su red y trate nuevamente.');
       console.error('Login error:', error);
-
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-
       toast({
         type: 'error',
         title: 'Error de conexión',
-        message: 'No se pudo conectar con el servidor. Intenta de nuevo.',
+        message: errorMessage,
       });
-
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
-  }, [login, setLoading]);
+  };
 
-  const handleLogout = useCallback(() => {
-    logout();
-    toast({
-      type: 'info',
-      title: 'Sesión cerrada',
-      message: 'Has cerrado sesión correctamente',
-    });
-  }, [logout]);
-
-  const validateSession = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return false;
-
+  const handleLogout = async (): Promise<void> => {
     try {
       setLoading(true);
-      const response = await apiService.validateToken();
 
-      if (response.success && response.data) {
-        login(response.data, token);
-        return true;
-      } else {
-        handleLogout();
-        return false;
-      }
-    } catch {
-      handleLogout();
-      return false;
+      // Try to notify the backend, but don't wait for it
+      apiService.logout().catch(error => {
+        console.warn('Logout API call failed:', error);
+      });
+
+      logout();
+      toast({
+        type: 'success',
+        title: 'Sesión cerrada',
+        message: 'Sesión cerrada exitosamente',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force logout even if API call fails
+      logout();
     } finally {
       setLoading(false);
     }
-  }, [login, handleLogout, setLoading]);
+  };
 
-  // Utility functions
-  const isAdmin = user?.role === 'admin';
-  const isAssassin = user?.role === 'assassin';
-  const userName = user?.alias || 'Usuario';
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const response = await apiService.refreshToken();
+
+      if (response.success && response.data?.token) {
+        localStorage.setItem('token', response.data.token);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
+  };
+
+  const updateUserProfile = async (updatedUser: User): Promise<void> => {
+    updateUser(updatedUser);
+  };
 
   return {
-    // State
     user,
     isAuthenticated,
     isLoading,
-    isAdmin,
-    isAssassin,
-    userName,
-
-    // Functions
     login: handleLogin,
     logout: handleLogout,
-    validateSession,
+    refreshToken,
+    updateUser: updateUserProfile,
+    // Helper methods
+    isAdmin: user?.role === 'admin',
+    isAssassin: user?.role === 'assassin',
   };
-}
+};

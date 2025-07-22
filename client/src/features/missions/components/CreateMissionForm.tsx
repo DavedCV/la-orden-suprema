@@ -26,7 +26,7 @@ const createMissionSchema = z.object({
     .min(10, "La descripción debe tener al menos 10 caracteres"),
   reward: z.number().min(100, "La recompensa mínima es 100 monedas"),
   deadline: z.string().min(1, "La fecha límite es requerida"),
-  priority: z.enum(["low", "medium", "high"]).default("medium"),
+  priority: z.enum(["low", "medium", "high"]),
 });
 
 type CreateMissionFormData = z.infer<typeof createMissionSchema>;

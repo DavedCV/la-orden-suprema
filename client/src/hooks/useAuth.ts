@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { apiService } from '../services/api';
-import { toast } from '../components/ui/Toaster';
+import { apiService } from '../shared/services/api';
+import { toast } from '../shared/utils/toast';
 import type { LoginFormData } from '../schemas/auth';
 
 export function useAuth() {

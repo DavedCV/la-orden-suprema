@@ -1,5 +1,12 @@
-export { AssassinDirectoryPage } from './AssassinDirectoryPage';
-export { AssassinManagementPage } from './AssassinManagementPage';
-export { AssassinMissionsPage } from './AssassinMissionsPage';
-export { CreateAssassinForm } from './CreateAssassinForm';
-export { LocationMapPage } from './LocationMapPage';
+export { AssassinCard } from "./AssassinCard";
+export { AssassinDetailsModal } from "./AssassinDetailsModal";
+export { AssassinDirectoryPage } from "./AssassinDirectoryPage";
+export { AssassinManagementPage } from "./AssassinManagementPage";
+export { AssassinMissionsPage } from "./AssassinMissionsPage";
+export { CreateAssassinForm } from "./CreateAssassinForm";
+export { EditAssassinModal } from "./EditAssassinModal";
+export { LocationMapPage } from "./LocationMapPage";
+export { AssassinFilters } from "./AssassinFilters";
+export { AssassinList } from "./AssassinList";
+export { SkillsEditor } from "./SkillsEditor";
+export { DeleteConfirmationModal } from "./DeleteConfirmationModal";

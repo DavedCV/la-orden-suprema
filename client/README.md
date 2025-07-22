@@ -2,9 +2,158 @@
 
 Sistema de gestión moderno para asesinos profesionales inspirado en el universo de John Wick.
 
-## 🚀 Tecnologías y Arquitectura Moderna
+## 📋 Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Running backend server (see backend README)
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
+
+```bash
+# From the client directory
+npm install
+```
+
+### 2. Environment Setup (Optional)
+
+The frontend is pre-configured to connect to the backend at `http://localhost:3001/api`. If you need to change this:
+
+Create a `.env.local` file in the client directory:
+
+```env
+VITE_API_URL=http://localhost:3001/api
+VITE_APP_NAME="La Orden Suprema"
+```
+
+### 3. Run Development Server
+
+```bash
+# Start the development server
+npm run dev
+```
+
+The application will be available at: **http://localhost:5173**
+
+### 4. Build for Production
+
+```bash
+# Create production build
+npm run build
+
+# Preview production build locally
+npm run preview
+```
+
+## 📦 Available Scripts
+
+```bash
+npm run dev          # Start development server (port 5173)
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+```
+
+## 🔧 Configuration
+
+### Vite Configuration
+
+- **Development Port**: 5173
+- **Auto Browser Open**: Enabled
+- **Hot Module Replacement**: Enabled
+- **TypeScript**: Strict mode enabled
+
+### API Configuration
+
+The API endpoint is configured in `src/shared/services/api.ts`:
+
+```typescript
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+```
+
+## 🎨 UI/UX Features
+
+### Tema John Wick
+
+- **Paleta de colores**: Tonos oscuros inspirados en el universo cinematográfico
+- **Tipografía**: Fonts elegantes y profesionales
+- **Animaciones**: Sutiles y fluidas para mejorar la UX
+- **Componentes**: Diseño minimalista pero sofisticado
+
+### Colores Principales
+
+- **Orden**: Grises oscuros (#0d1117 - #6c757d)
+- **Gold**: Dorado para elementos importantes (#f59e0b - #78350f)
+
+## 🏗️ Project Structure
+
+```
+client/
+├── src/
+│   ├── features/           # Feature modules
+│   │   ├── auth/          # Authentication
+│   │   ├── dashboard/     # Dashboard views
+│   │   ├── missions/      # Mission management
+│   │   ├── assassins/     # Assassin management
+│   │   ├── blood-markers/ # Blood marker system
+│   │   └── reports/       # Reports and analytics
+│   ├── shared/            # Shared resources
+│   │   ├── components/    # Reusable components
+│   │   ├── hooks/         # Custom hooks
+│   │   ├── services/      # API services
+│   │   ├── store/         # Zustand stores
+│   │   ├── types/         # TypeScript types
+│   │   └── utils/         # Utilities
+│   ├── App.tsx            # Main app component
+│   ├── main.tsx           # Entry point
+│   └── index.css          # Global styles
+├── public/                # Static assets
+├── index.html             # HTML template
+├── package.json           # Dependencies
+├── vite.config.ts         # Vite configuration
+├── tailwind.config.js     # Tailwind configuration
+└── tsconfig.json          # TypeScript configuration
+```
+
+## 🔑 Key Features
+
+### Authentication System
+
+- JWT-based authentication
+- Automatic token management
+- Protected routes
+- Role-based access (Admin/Assassin)
+- First login password change flow
+
+### State Management
+
+- **Zustand** for global state (auth, user preferences)
+- **TanStack Query** for server state
+- Optimistic updates
+- Real-time data synchronization
+
+### Form Handling
+
+- React Hook Form for performance
+- Zod schema validation
+- Real-time validation feedback
+- Error handling
+
+### UI Components
+
+- Reusable component library
+- Consistent design system
+- Loading states
+- Error boundaries
+- Toast notifications
+
+## 🛠️ Technology Stack
 
 ### Stack Principal
+
 - **React 19** - Framework de UI con las últimas características
 - **TypeScript** - Tipado estático para mayor seguridad
 - **Vite** - Build tool extremadamente rápido
@@ -15,6 +164,7 @@ Sistema de gestión moderno para asesinos profesionales inspirado en el universo
 - **Lucide React** - Iconos modernos y consistentes
 
 ### Arquitectura de Carpetas
+
 ```
 src/
 ├── components/          # Componentes reutilizables
@@ -29,140 +179,54 @@ src/
 └── layouts/            # Layouts de página
 ```
 
-## 🎨 Características de Diseño
+## 🧩 Dependencies
 
-### Tema John Wick
-- **Paleta de colores**: Tonos oscuros inspirados en el universo cinematográfico
-- **Tipografía**: Fonts elegantes y profesionales
-- **Animaciones**: Sutiles y fluidas para mejorar la UX
-- **Componentes**: Diseño minimalista pero sofisticado
+### Production Dependencies
 
-### Colores Principales
-- **Orden**: Grises oscuros (#0d1117 - #6c757d)
-- **Gold**: Dorado para elementos importantes (#f59e0b - #78350f)
+- `react` & `react-dom`: ^19.1.0
+- `typescript`: ~5.8.3
+- `@tanstack/react-query`: ^5.81.2
+- `zustand`: ^5.0.5
+- `react-hook-form`: ^7.58.1
+- `zod`: ^3.25.67
+- `tailwindcss`: ^3.4.0
+- `lucide-react`: ^0.523.0
 
-## 🛠️ Mejores Prácticas Implementadas
+### Development Dependencies
 
-### 1. **Arquitectura de Componentes**
-- Componentes funcionales con hooks
-- Separación clara entre lógica y presentación
-- Props tipadas con TypeScript
-- Componentes reutilizables en la carpeta `ui/`
+- `vite`: ^7.0.0
+- `@vitejs/plugin-react`: ^4.5.2
+- `eslint`: ^9.29.0
+- Various TypeScript type definitions
 
-### 2. **Gestión de Estado**
-- **Zustand** para estado global (auth, tema, etc.)
-- **TanStack Query** para estado del servidor
-- Estado local con `useState` cuando corresponde
+## 🚨 Troubleshooting
 
-### 3. **Manejo de Formularios**
-- **React Hook Form** para performance óptima
-- **Zod** para validación robusta
-- Validación en tiempo real
-- Manejo de errores consistente
+### Common Issues
 
-### 4. **Tipado con TypeScript**
-- Interfaces completas para todos los datos
-- Tipos reutilizables y bien organizados
-- Validación estricta habilitada
-- Tipos para respuestas de API
+1. **API Connection Error**
 
-### 5. **Styling Moderno**
-- **Tailwind CSS** para desarrollo rápido
-- Clases utilitarias consistentes
-- Componentes personalizados reutilizables
-- Responsive design por defecto
+   - Ensure backend is running on port 3001
+   - Check CORS settings in backend
+   - Verify API URL in environment variables
 
-### 6. **Performance**
-- Code splitting automático con Vite
-- Lazy loading de componentes
-- Optimización de imágenes
-- Caché inteligente con React Query
+2. **Build Errors**
 
-### 7. **Desarrollo**
-- Hot Module Replacement (HMR)
-- ESLint con reglas estrictas
-- Prettier para formateo consistente
-- TypeScript strict mode
+   ```bash
+   # Clear cache and reinstall
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
 
-## 🏗️ Comandos Disponibles
+3. **Port Already in Use**
 
-```bash
-# Instalación
-npm install
+   ```bash
+   # Kill process on port 5173
+   lsof -ti:5173 | xargs kill -9
+   ```
 
-# Desarrollo
-npm run dev          # Inicia servidor de desarrollo en puerto 3000
-
-# Construcción
-npm run build        # Build para producción
-npm run preview      # Preview del build
-
-# Calidad de código
-npm run lint         # Ejecuta ESLint
-npm run type-check   # Verifica tipos de TypeScript
-```
-
-## 📦 Funcionalidades Implementadas
-
-### Sistema de Autenticación
-- Login seguro con JWT
-- Validación de tokens
-- Persistencia de sesión
-- Logout automático en errores de auth
-
-### Gestión de Estado
-- **Auth Store**: Manejo de autenticación
-- **Query Cache**: Caché inteligente de datos del servidor
-- **Optimistic Updates**: Actualizaciones optimistas
-
-### Componentes UI
-- **LoadingSpinner**: Spinner de carga reutilizable
-- **Toaster**: Sistema de notificaciones
-- **Router**: Navegación basada en autenticación
-- **Dashboard**: Interfaz principal
-
-### Servicios
-- **API Service**: Cliente HTTP tipado
-- **Interceptors**: Manejo automático de tokens
-- **Error Handling**: Manejo centralizado de errores
-
-## 🔧 Configuración de Desarrollo
-
-### Variables de Entorno
-Crea un archivo `.env.local`:
-```
-VITE_API_URL=http://localhost:3001/api
-VITE_APP_NAME="La Orden Suprema"
-```
-
-### Configuración de Vite
-- Puerto de desarrollo: 3000
-- Auto-apertura del navegador
-- Sourcemaps para debugging
-- Chunking inteligente para optimización
-
-## 🎯 Próximos Pasos
-
-### Funcionalidades Pendientes
-1. **Páginas Principales**
-   - Dashboard completo para asesinos
-   - Panel de administración
-   - Perfil de usuario
-   - Gestión de misiones
-   - Sistema de marcadores de sangre
-
-2. **Características Avanzadas**
-   - Búsqueda en tiempo real
-   - Filtros avanzados
-   - Notificaciones push
-   - Modo offline
-   - PWA capabilities
-
-3. **Mejoras de UX**
-   - Animaciones avanzadas
-   - Temas personalizables
-   - Accesibilidad completa
-   - Responsive design mejorado
+4. **TypeScript Errors**
+   - Ensure all types are properly imported
+   - Run `npm run type-check` to verify
 
 ## 🚨 Consideraciones de Seguridad
 
@@ -172,21 +236,33 @@ VITE_APP_NAME="La Orden Suprema"
 - Tokens JWT seguros
 - HTTPS en producción
 
+## 🎯 Development Tips
+
+1. **Use the Component Library**
+
+   - Import from `@/shared/components`
+   - Maintain consistent styling
+
+2. **Follow Feature Structure**
+
+   - Keep related code in feature folders
+   - Export through index files
+
+3. **Type Everything**
+
+   - Use TypeScript interfaces
+   - Avoid `any` types
+
+4. **Use Hooks**
+   - Custom hooks for logic reuse
+   - Keep components clean
+
 ## 📱 Responsive Design
 
 La aplicación está diseñada para funcionar perfectamente en:
+
 - **Desktop**: Experiencia completa
 - **Tablet**: Interfaz adaptada
 - **Mobile**: Navegación optimizada
 
-## 🧪 Testing (Próximamente)
-
-Planeamos implementar:
-- Unit tests con Vitest
-- Integration tests con Testing Library
-- E2E tests con Playwright
-- Visual regression tests
-
 ---
-
-**Desarrollado siguiendo las mejores prácticas de desarrollo frontend moderno**

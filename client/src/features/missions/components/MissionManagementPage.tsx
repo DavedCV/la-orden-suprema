@@ -1,489 +1,395 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { apiService } from "../../../shared/services/api";
+import { useState, memo } from "react";
+import { Target, Plus, Search, Filter, ArrowLeft } from "lucide-react";
 import { Button } from "../../../shared/components/Button";
 import { Input } from "../../../shared/components/Input";
 import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
-import {
-  Target,
-  Plus,
-  Search,
-  Filter,
-  Edit3,
-  UserPlus,
-  Calendar,
-  Coins,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  ArrowLeft,
-  Eye,
-  Users,
-} from "lucide-react";
-import { formatDate, formatCurrency } from "../../../shared/utils";
-import type { Mission, Assassin, MissionStatus } from "../../../shared/types";
+import { useNavigation } from "../../../shared/hooks/useNavigation";
+import { useMissionManagement } from "../hooks/useMissionManagement";
+import { StatCard } from "./StatCard";
+import { AdminMissionCard } from "./AdminMissionCard";
+import { MissionErrorBoundary } from "./MissionErrorBoundary";
 import { CreateMissionForm } from "./CreateMissionForm";
 import { AssignMissionForm } from "./AssignMissionForm";
-import { MissionDetailsModal } from "./MissionDetailsModal";
+import { AdminMissionDetailsModal } from "./AdminMissionDetailsModal";
+import {
+  MISSION_FILTER_CONFIG,
+  SEARCH_PLACEHOLDER,
+  EMPTY_STATE_MESSAGES,
+} from "../constants";
+import type { Mission } from "../../../shared/types";
 
-type MissionFilter =
-  | "all"
-  | "no_asignada"
-  | "asignada"
-  | "en_progreso"
-  | "completada"
-  | "fallida";
+// Loading component
+const LoadingState = memo(function LoadingState() {
+  return (
+    <div className="min-h-screen bg-orden-900 flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <LoadingSpinner size="lg" />
+        <p className="text-orden-300">Cargando gestión de misiones...</p>
+      </div>
+    </div>
+  );
+});
 
+// Error component
+const ErrorState = memo(function ErrorState({
+  onRetry,
+}: {
+  onRetry: () => void;
+}) {
+  return (
+    <div className="min-h-screen bg-orden-900 flex items-center justify-center">
+      <div className="text-center space-y-4 max-w-md mx-auto px-4">
+        <div className="bg-red-500/20 p-4 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+          <Target className="h-8 w-8 text-red-400" />
+        </div>
+        <h2 className="text-xl font-semibold text-orden-100">
+          Error al cargar las misiones
+        </h2>
+        <p className="text-orden-400">
+          No se pudieron cargar las misiones. Por favor, verifica tu conexión e
+          intenta nuevamente.
+        </p>
+        <Button onClick={onRetry} variant="primary">
+          Reintentar
+        </Button>
+      </div>
+    </div>
+  );
+});
+
+// Empty state component
+const EmptyState = memo(function EmptyState({
+  hasFiltersApplied,
+  onCreateMission,
+}: {
+  hasFiltersApplied: boolean;
+  onCreateMission: () => void;
+}) {
+  const messages = EMPTY_STATE_MESSAGES.NO_MISSIONS;
+
+  return (
+    <div className="text-center py-12">
+      <Target className="h-16 w-16 text-orden-600 mx-auto mb-4" />
+      <h3 className="text-lg font-medium text-orden-300 mb-2">
+        {messages.title}
+      </h3>
+      <p className="text-orden-400 mb-6">
+        {hasFiltersApplied ? messages.withFilters : messages.withoutFilters}
+      </p>
+      {!hasFiltersApplied && (
+        <Button onClick={onCreateMission}>
+          <Plus className="h-4 w-4 mr-2" />
+          {messages.buttonText}
+        </Button>
+      )}
+    </div>
+  );
+});
+
+// Header component
+const PageHeader = memo(function PageHeader({
+  onCreateMission,
+  onGoToDashboard,
+}: {
+  onCreateMission: () => void;
+  onGoToDashboard: () => void;
+}) {
+  return (
+    <header className="bg-orden-800 border-b border-orden-700 shadow-lg">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Mobile layout: stack vertically */}
+        <div className="flex flex-col space-y-4 py-4 sm:hidden">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onGoToDashboard}
+              className="text-orden-300 hover:text-orden-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+
+            <div className="bg-gold-500/20 p-2 rounded-lg">
+              <Target className="h-6 w-6 text-gold-400" />
+            </div>
+
+            <div className="flex-1">
+              <h1 className="text-lg font-bold text-gold-400">
+                Gestión de Contratos
+              </h1>
+              <p className="text-sm text-orden-400">Administrar misiones</p>
+            </div>
+          </div>
+
+          <Button
+            onClick={onCreateMission}
+            className="bg-gold-600 hover:bg-gold-700 w-full justify-center"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Misión
+          </Button>
+        </div>
+
+        {/* Desktop layout: horizontal */}
+        <div className="hidden sm:flex justify-between items-center py-4">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onGoToDashboard}
+              className="text-orden-300 hover:text-orden-100"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Dashboard
+            </Button>
+            <div className="h-6 w-px bg-orden-600" />
+            <div className="flex items-center space-x-3">
+              <div className="bg-gold-500/20 p-2 rounded-lg">
+                <Target className="h-6 w-6 text-gold-400" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gold-400">
+                  Gestión de Contratos
+                </h1>
+                <p className="text-sm text-orden-400">
+                  Administrar misiones y asignaciones
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            onClick={onCreateMission}
+            className="bg-gold-600 hover:bg-gold-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            <span className="hidden md:inline">Nueva Misión</span>
+            <span className="md:hidden">Nueva</span>
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+});
+
+// Stats section component
+const StatsSection = memo(function StatsSection({
+  missionStats,
+  statusFilter,
+  onFilterChange,
+}: {
+  missionStats: import("../hooks/useMissionManagement").MissionStats;
+  statusFilter: import("../hooks/useMissionManagement").MissionFilter;
+  onFilterChange: (
+    filter: import("../hooks/useMissionManagement").MissionFilter
+  ) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      {MISSION_FILTER_CONFIG.map((config) => (
+        <StatCard
+          key={config.key}
+          title={config.title}
+          value={missionStats[config.statKey]}
+          color={config.color}
+          isActive={statusFilter === config.key}
+          onClick={() => onFilterChange(config.key)}
+        />
+      ))}
+    </div>
+  );
+});
+
+// Search section component
+const SearchSection = memo(function SearchSection({
+  searchQuery,
+  onSearchChange,
+  onClearFilters,
+}: {
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  onClearFilters: () => void;
+}) {
+  return (
+    <div className="card p-6 mb-6">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orden-400 h-4 w-4" />
+            <Input
+              placeholder={SEARCH_PLACEHOLDER}
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="pl-10"
+              aria-label="Buscar misiones"
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onClearFilters}
+            aria-label="Limpiar filtros de búsqueda"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Limpiar
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Main component
 export function MissionManagementPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<MissionFilter>("all");
+  const { goToDashboard } = useNavigation();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
 
-  // Fetch missions
-  const { data: missionsData, isLoading: isLoadingMissions } = useQuery({
-    queryKey: ["missions"],
-    queryFn: () => apiService.getMissions(),
-  });
+  const {
+    assassins,
+    filteredMissions,
+    activeAssassins,
+    missionStats,
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    clearFilters,
+    isLoading,
+    hasError,
+    hasNoResults,
+    hasFiltersApplied,
+  } = useMissionManagement();
 
-  // Fetch assassins for assignment
-  const { data: assassinsData, isLoading: isLoadingAssassins } = useQuery({
-    queryKey: ["assassins"],
-    queryFn: () => apiService.getAssassins(),
-  });
-
-  const missions = missionsData?.data || [];
-  const assassins = assassinsData?.data || [];
-
-  // Filter missions
-  const filteredMissions = missions.filter((mission) => {
-    const matchesSearch =
-      mission.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      mission.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      mission.targetName?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "all" ||
-      mission.status.toLowerCase().replace(" ", "_") === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  // Get mission stats
-  const missionStats = {
-    total: missions.length,
-    noAsignada: missions.filter((m) => m.status === "No Asignada").length,
-    asignada: missions.filter((m) => m.status === "Asignada").length,
-    enProgreso: missions.filter((m) => m.status === "En Progreso").length,
-    completada: missions.filter((m) => m.status === "Completada").length,
-    fallida: missions.filter((m) => m.status === "Fallida").length,
+  // Event handlers
+  const handleCreateMission = () => {
+    setSelectedMission(null);
+    setShowCreateModal(true);
   };
 
-  const handleBackToDashboard = () => {
-    window.history.pushState(null, "", "/dashboard");
-    window.location.reload();
+  const handleEditMission = (mission: Mission) => {
+    setSelectedMission(mission);
+    setShowCreateModal(true);
   };
 
-  if (isLoadingMissions || isLoadingAssassins) {
-    return (
-      <div className="min-h-screen bg-orden-900 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <LoadingSpinner size="lg" />
-          <p className="text-orden-300">Cargando gestión de misiones...</p>
-        </div>
-      </div>
-    );
+  const handleAssignMission = (mission: Mission) => {
+    setSelectedMission(mission);
+    setShowAssignModal(true);
+  };
+
+  const handleViewDetails = (mission: Mission) => {
+    setSelectedMission(mission);
+    setShowDetailsModal(true);
+  };
+
+  const handleModalSuccess = () => {
+    setShowCreateModal(false);
+    setShowAssignModal(false);
+    setShowDetailsModal(false);
+    setSelectedMission(null);
+  };
+
+  const handleModalClose = () => {
+    setShowCreateModal(false);
+    setShowAssignModal(false);
+    setShowDetailsModal(false);
+    setSelectedMission(null);
+  };
+
+  // Loading state
+  if (isLoading) {
+    return <LoadingState />;
+  }
+
+  // Error state
+  if (hasError) {
+    return <ErrorState onRetry={() => window.location.reload()} />;
   }
 
   return (
-    <div className="min-h-screen bg-orden-900">
-      {/* Header */}
-      <header className="bg-orden-800 border-b border-orden-700 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToDashboard}
-                className="text-orden-300 hover:text-orden-100"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
-              <div className="h-6 w-px bg-orden-600" />
-              <div className="flex items-center space-x-3">
-                <div className="bg-gold-500/20 p-2 rounded-lg">
-                  <Target className="h-6 w-6 text-gold-400" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gold-400">
-                    Gestión de Contratos
-                  </h1>
-                  <p className="text-sm text-orden-400">
-                    Administrar misiones y asignaciones
-                  </p>
-                </div>
-              </div>
-            </div>
+    <MissionErrorBoundary>
+      <div className="min-h-screen bg-orden-900">
+        <PageHeader
+          onCreateMission={handleCreateMission}
+          onGoToDashboard={goToDashboard}
+        />
 
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-gold-600 hover:bg-gold-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva Misión
-            </Button>
-          </div>
-        </div>
-      </header>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <StatsSection
+            missionStats={missionStats}
+            statusFilter={statusFilter}
+            onFilterChange={setStatusFilter}
+          />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <StatCard
-            title="Total"
-            value={missionStats.total}
-            color="blue"
-            isActive={statusFilter === "all"}
-            onClick={() => setStatusFilter("all")}
+          <SearchSection
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onClearFilters={clearFilters}
           />
-          <StatCard
-            title="Sin Asignar"
-            value={missionStats.noAsignada}
-            color="gray"
-            isActive={statusFilter === "no_asignada"}
-            onClick={() => setStatusFilter("no_asignada")}
-          />
-          <StatCard
-            title="Asignadas"
-            value={missionStats.asignada}
-            color="blue"
-            isActive={statusFilter === "asignada"}
-            onClick={() => setStatusFilter("asignada")}
-          />
-          <StatCard
-            title="En Progreso"
-            value={missionStats.enProgreso}
-            color="yellow"
-            isActive={statusFilter === "en_progreso"}
-            onClick={() => setStatusFilter("en_progreso")}
-          />
-          <StatCard
-            title="Completadas"
-            value={missionStats.completada}
-            color="green"
-            isActive={statusFilter === "completada"}
-            onClick={() => setStatusFilter("completada")}
-          />
-          <StatCard
-            title="Fallidas"
-            value={missionStats.fallida}
-            color="red"
-            isActive={statusFilter === "fallida"}
-            onClick={() => setStatusFilter("fallida")}
-          />
-        </div>
 
-        {/* Search and Filters */}
-        <div className="card p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orden-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar por título, descripción o objetivo..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setSearchQuery("");
-                  setStatusFilter("all");
-                }}
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Limpiar
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Missions Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredMissions.map((mission) => (
-            <MissionCard
-              key={mission.id}
-              mission={mission}
-              assassins={assassins}
-              onEdit={(mission) => {
-                setSelectedMission(mission);
-                setShowCreateModal(true);
-              }}
-              onAssign={(mission) => {
-                setSelectedMission(mission);
-                setShowAssignModal(true);
-              }}
-              onViewDetails={(mission) => {
-                setSelectedMission(mission);
-                setShowDetailsModal(true);
-              }}
+          {/* Missions Grid */}
+          {hasNoResults ? (
+            <EmptyState
+              hasFiltersApplied={hasFiltersApplied}
+              onCreateMission={handleCreateMission}
             />
-          ))}
-        </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredMissions.map((mission) => (
+                <AdminMissionCard
+                  key={mission.id}
+                  mission={mission}
+                  assassins={assassins}
+                  onEdit={handleEditMission}
+                  onAssign={handleAssignMission}
+                  onViewDetails={handleViewDetails}
+                />
+              ))}
+            </div>
+          )}
+        </main>
 
-        {filteredMissions.length === 0 && (
-          <div className="text-center py-12">
-            <Target className="h-16 w-16 text-orden-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-orden-300 mb-2">
-              No se encontraron misiones
-            </h3>
-            <p className="text-orden-400 mb-6">
-              {searchQuery || statusFilter !== "all"
-                ? "Intenta ajustar los filtros de búsqueda"
-                : "Comienza creando tu primera misión"}
-            </p>
-            {!searchQuery && statusFilter === "all" && (
-              <Button onClick={() => setShowCreateModal(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Crear Primera Misión
-              </Button>
-            )}
-          </div>
-        )}
-      </main>
-
-      {/* Modals */}
-      {showCreateModal && (
-        <CreateMissionForm
-          mission={selectedMission}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            // In a real app, we would invalidate queries here
-            window.location.reload(); // Simple refresh for now
-          }}
-        />
-      )}
-
-      {showAssignModal && selectedMission && (
-        <AssignMissionForm
-          mission={selectedMission}
-          assassins={assassins.filter((a) => a.status === "Activo")}
-          onClose={() => setShowAssignModal(false)}
-          onSuccess={() => {
-            setShowAssignModal(false);
-            // In a real app, we would invalidate queries here
-            window.location.reload(); // Simple refresh for now
-          }}
-        />
-      )}
-
-      {showDetailsModal && selectedMission && (
-        <MissionDetailsModal
-          mission={selectedMission}
-          assassins={assassins}
-          onClose={() => setShowDetailsModal(false)}
-          onEdit={(mission) => {
-            setSelectedMission(mission);
-            setShowDetailsModal(false);
-            setShowCreateModal(true);
-          }}
-          onAssign={(mission) => {
-            setSelectedMission(mission);
-            setShowDetailsModal(false);
-            setShowAssignModal(true);
-          }}
-          onSuccess={() => {
-            setShowDetailsModal(false);
-            // In a real app, we would invalidate queries here
-            window.location.reload(); // Simple refresh for now
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-// Stat Card Component
-function StatCard({
-  title,
-  value,
-  color,
-  isActive,
-  onClick,
-}: {
-  title: string;
-  value: number;
-  color: "blue" | "gray" | "yellow" | "green" | "red";
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  const colorClasses = {
-    blue: isActive
-      ? "bg-blue-500/20 border-blue-500 text-blue-400"
-      : "hover:bg-blue-500/10 hover:border-blue-500/50",
-    gray: isActive
-      ? "bg-gray-500/20 border-gray-500 text-gray-400"
-      : "hover:bg-gray-500/10 hover:border-gray-500/50",
-    yellow: isActive
-      ? "bg-yellow-500/20 border-yellow-500 text-yellow-400"
-      : "hover:bg-yellow-500/10 hover:border-yellow-500/50",
-    green: isActive
-      ? "bg-green-500/20 border-green-500 text-green-400"
-      : "hover:bg-green-500/10 hover:border-green-500/50",
-    red: isActive
-      ? "bg-red-500/20 border-red-500 text-red-400"
-      : "hover:bg-red-500/10 hover:border-red-500/50",
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      className={`card p-4 text-center transition-all cursor-pointer border ${
-        colorClasses[color]
-      } ${isActive ? "" : "hover:scale-105"}`}
-    >
-      <div className="text-2xl font-bold text-orden-100 mb-1">{value}</div>
-      <div className="text-xs text-orden-400">{title}</div>
-    </button>
-  );
-}
-
-// Mission Card Component
-function MissionCard({
-  mission,
-  assassins,
-  onEdit,
-  onAssign,
-  onViewDetails,
-}: {
-  mission: Mission;
-  assassins: Assassin[];
-  onEdit: (mission: Mission) => void;
-  onAssign: (mission: Mission) => void;
-  onViewDetails: (mission: Mission) => void;
-}) {
-  const getStatusColor = (status: MissionStatus) => {
-    switch (status) {
-      case "No Asignada":
-        return "text-gray-400 bg-gray-500/20";
-      case "Asignada":
-        return "text-blue-400 bg-blue-500/20";
-      case "En Progreso":
-        return "text-yellow-400 bg-yellow-500/20";
-      case "Completada":
-        return "text-green-400 bg-green-500/20";
-      case "Fallida":
-        return "text-red-400 bg-red-500/20";
-      default:
-        return "text-orden-400 bg-orden-700/50";
-    }
-  };
-
-  const getStatusIcon = (status: MissionStatus) => {
-    switch (status) {
-      case "No Asignada":
-        return <Clock className="h-4 w-4" />;
-      case "Asignada":
-        return <UserPlus className="h-4 w-4" />;
-      case "En Progreso":
-        return <Target className="h-4 w-4" />;
-      case "Completada":
-        return <CheckCircle className="h-4 w-4" />;
-      case "Fallida":
-        return <AlertTriangle className="h-4 w-4" />;
-      default:
-        return <Clock className="h-4 w-4" />;
-    }
-  };
-
-  const assignedAssassin = mission.assignedTo
-    ? assassins.find((a) => a.id === mission.assignedTo)
-    : null;
-
-  return (
-    <div className="card p-6 hover:border-gold-500/30 transition-colors">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-orden-100 mb-1">
-            {mission.title}
-          </h3>
-          <p className="text-sm text-orden-400 line-clamp-2">
-            {mission.description}
-          </p>
-        </div>
-        <div
-          className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-            mission.status
-          )}`}
-        >
-          {getStatusIcon(mission.status)}
-          <span>{mission.status}</span>
-        </div>
-      </div>
-
-      {/* Details */}
-      <div className="space-y-3 mb-4">
-        {mission.targetName && (
-          <div className="flex items-center text-sm">
-            <Target className="h-4 w-4 text-orden-400 mr-2" />
-            <span className="text-orden-300">{mission.targetName}</span>
-          </div>
+        {/* Modals */}
+        {showCreateModal && (
+          <CreateMissionForm
+            mission={selectedMission}
+            onClose={handleModalClose}
+            onSuccess={handleModalSuccess}
+          />
         )}
 
-        <div className="flex items-center text-sm">
-          <Coins className="h-4 w-4 text-gold-400 mr-2" />
-          <span className="text-gold-400 font-medium">
-            {formatCurrency(mission.reward)}
-          </span>
-        </div>
+        {showAssignModal && selectedMission && (
+          <AssignMissionForm
+            mission={selectedMission}
+            assassins={activeAssassins}
+            onClose={handleModalClose}
+            onSuccess={handleModalSuccess}
+          />
+        )}
 
-        <div className="flex items-center text-sm">
-          <Calendar className="h-4 w-4 text-orden-400 mr-2" />
-          <span className="text-orden-300">{formatDate(mission.deadline)}</span>
-        </div>
-
-        {assignedAssassin && (
-          <div className="flex items-center text-sm">
-            <Users className="h-4 w-4 text-blue-400 mr-2" />
-            <span className="text-blue-400">{assignedAssassin.alias}</span>
-          </div>
+        {showDetailsModal && selectedMission && (
+          <AdminMissionDetailsModal
+            mission={selectedMission}
+            assassins={assassins}
+            onClose={handleModalClose}
+            onEdit={(mission: Mission) => {
+              setSelectedMission(mission);
+              setShowDetailsModal(false);
+              setShowCreateModal(true);
+            }}
+            onAssign={(mission: Mission) => {
+              setSelectedMission(mission);
+              setShowDetailsModal(false);
+              setShowAssignModal(true);
+            }}
+            onSuccess={handleModalSuccess}
+          />
         )}
       </div>
-
-      {/* Actions */}
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => onViewDetails(mission)}
-          className="flex-1"
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          Ver
-        </Button>
-
-        <Button size="sm" variant="secondary" onClick={() => onEdit(mission)}>
-          <Edit3 className="h-4 w-4" />
-        </Button>
-
-        {mission.status === "No Asignada" && (
-          <Button size="sm" variant="primary" onClick={() => onAssign(mission)}>
-            <UserPlus className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    </div>
+    </MissionErrorBoundary>
   );
 }

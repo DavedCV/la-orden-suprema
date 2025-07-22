@@ -1,5 +1,6 @@
-import { Users, Target, Coins, BarChart3 } from "lucide-react";
+import React from "react";
 import { StatCard } from "./StatCard";
+import { Users, Target, Coins, BarChart3 } from "lucide-react";
 import { formatCurrency } from "../../../shared/utils";
 import type { AdminDashboard } from "../../../shared/types";
 
@@ -7,37 +8,39 @@ interface AdminStatsProps {
   data: AdminDashboard;
 }
 
-export function AdminStats({ data }: AdminStatsProps) {
+export const AdminStats = React.memo(function AdminStats({
+  data,
+}: AdminStatsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <>
       <StatCard
         icon={<Users className="h-6 w-6" />}
         title="Asesinos Activos"
-        value={data.stats.totalAssassins.toString()}
-        subtitle="Registrados en la orden"
+        value={data.stats.activeAssassins.toString()}
+        subtitle={`${data.stats.totalAssassins} total`}
         color="blue"
       />
       <StatCard
         icon={<Target className="h-6 w-6" />}
         title="Misiones Activas"
         value={data.stats.activeMissions.toString()}
-        subtitle="En curso"
+        subtitle={`${data.stats.completedMissions} completadas`}
         color="yellow"
       />
       <StatCard
         icon={<Coins className="h-6 w-6" />}
-        title="Monedas en Circulación"
+        title="Fondos Disponibles"
         value={formatCurrency(data.stats.totalGoldCoins)}
-        subtitle="Total del sistema"
+        subtitle="Monedas de Oro"
         color="gold"
       />
       <StatCard
         icon={<BarChart3 className="h-6 w-6" />}
-        title="Misiones Completadas"
-        value={data.stats.completedMissions.toString()}
-        subtitle="Este mes"
+        title="Blood Markers"
+        value={data.stats.outstandingBloodMarkers.toString()}
+        subtitle="Pendientes"
         color="green"
       />
-    </div>
+    </>
   );
-}
+});

@@ -41,17 +41,19 @@ export interface Mission {
 }
 
 // Blood Marker (Debt) Types
-export type BloodMarkerStatus = 'Pendiente' | 'Pago Pendiente de Confirmación' | 'Saldado';
+export type BloodMarkerStatus = 'Solicitud Pendiente' | 'Pendiente' | 'Pago Pendiente de Confirmación' | 'Saldado' | 'Rechazada';
 
 export interface BloodMarker {
   id: string;
-  debtorId: string;
-  creditorId: string;
+  debtorId: string; // For API compatibility - this is the requester who becomes debtor when accepted
+  creditorId: string; // The person who will be owed the favor
   description: string;
   createdAt: string;
   status: BloodMarkerStatus;
-  paidAt?: string;
-  confirmedAt?: string;
+  paidAt?: string; // When debtor marked as paid
+  confirmedAt?: string; // When creditor confirmed payment
+  rejectedAt?: string; // When creditor rejected the request
+  rejectionReason?: string; // Reason for rejection
 }
 
 // API Response Types

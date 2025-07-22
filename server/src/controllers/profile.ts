@@ -39,12 +39,6 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     const restrictedFields = ['password', 'email', 'role', 'goldCoins', 'completedMissions', 'status'];
     restrictedFields.forEach(field => delete updateData[field]);
 
-    // Special handling for admins - they can't update assassin-specific fields
-    if (req.user.role === 'admin') {
-      const assassinFields = ['realName', 'skills', 'lastKnownLocation'];
-      assassinFields.forEach(field => delete updateData[field]);
-    }
-
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       updateData,

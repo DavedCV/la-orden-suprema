@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { apiService } from '../services/api';
+import { apiService } from '../shared/services/api';
 import { toast } from '../shared/utils/toast';
 import type { LoginFormData } from '../schemas/auth';
 

@@ -8,7 +8,7 @@ import {
   getAssassinProfile,
 } from '../controllers/profile';
 import { authenticate, requireAdmin, requireAuthenticated } from '../middleware/auth';
-import { validate, updateProfileSchema, changePasswordSchema } from '../middleware/validation';
+import { validate, updateProfileSchema, updateAssassinProfileSchema, changePasswordSchema } from '../middleware/validation';
 
 const router = Router();
 
@@ -45,7 +45,7 @@ router.get('/assassin/:assassinId', authenticate, requireAuthenticated, getAssas
  * @desc    Update specific assassin's profile
  * @access  Private (Admin or self)
  */
-router.patch('/assassin/:assassinId', authenticate, requireAuthenticated, validate(updateProfileSchema), updateAssassinProfile);
+router.patch('/assassin/:assassinId', authenticate, requireAuthenticated, validate(updateAssassinProfileSchema), updateAssassinProfile);
 
 /**
  * @route   POST /api/profile/assassin/:assassinId/reset-password

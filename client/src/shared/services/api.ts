@@ -170,7 +170,7 @@ class ApiService {
     assassinId: string,
     data: Partial<CreateAssassinForm>
   ): Promise<ApiResponse<Assassin>> {
-    return this.request(`/assassins/${assassinId}`, {
+    return this.request(`/profile/assassin/${assassinId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     });

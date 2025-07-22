@@ -229,6 +229,36 @@ export const updateProfileSchema = Joi.object({
     .optional(),
 });
 
+export const updateAssassinProfileSchema = Joi.object({
+  alias: Joi.string()
+    .min(2)
+    .max(50)
+    .trim()
+    .optional(),
+  realName: Joi.string()
+    .max(100)
+    .trim()
+    .optional(),
+  lastKnownLocation: Joi.string()
+    .max(200)
+    .trim()
+    .optional(),
+  skills: Joi.array()
+    .items(Joi.string().max(50).trim())
+    .optional(),
+  goldCoins: Joi.number()
+    .min(0)
+    .max(1000000)
+    .optional()
+    .messages({
+      'number.min': 'Gold coins cannot be negative',
+      'number.max': 'Gold coins cannot exceed 1,000,000',
+    }),
+  status: Joi.string()
+    .valid('Activo', 'Retirado', 'Excommunicado')
+    .optional(),
+});
+
 export const changePasswordSchema = Joi.object({
   currentPassword: Joi.string()
     .required()

@@ -5,6 +5,7 @@ import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
 import { useNavigation } from "../../../shared/hooks/useNavigation";
 import type { Assassin, AsassinStatus } from "../../../shared/types";
 import { CreateAssassinForm } from "./CreateAssassinForm";
+import { EditAssassinModal } from "./EditAssassinModal";
 import { AssassinFilters } from "./AssassinFilters";
 import { AssassinList } from "./AssassinList";
 import { AssassinDetailsModal } from "./AssassinDetailsModal";
@@ -17,6 +18,7 @@ export const AssassinManagementPage: React.FC = React.memo(() => {
     "Todos"
   );
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAssassin, setSelectedAssassin] = useState<Assassin | null>(
     null
   );
@@ -48,8 +50,24 @@ export const AssassinManagementPage: React.FC = React.memo(() => {
     []
   );
 
+  const handleEditModalOpen = useCallback((assassin: Assassin) => {
+    setSelectedAssassin(assassin);
+    setShowEditModal(true);
+  }, []);
+
+  const handleEditModalClose = useCallback(() => {
+    setShowEditModal(false);
+    setSelectedAssassin(null);
+  }, []);
+
   const handleCreateSuccess = useCallback(() => {
     setShowCreateModal(false);
+    refetch();
+  }, [refetch]);
+
+  const handleEditSuccess = useCallback(() => {
+    setShowEditModal(false);
+    setSelectedAssassin(null);
     refetch();
   }, [refetch]);
 
@@ -71,13 +89,23 @@ export const AssassinManagementPage: React.FC = React.memo(() => {
     [handleCreateModalClose, handleCreateSuccess]
   );
 
+  const editModalProps = useMemo(
+    () => ({
+      assassin: selectedAssassin!,
+      onClose: handleEditModalClose,
+      onSuccess: handleEditSuccess,
+    }),
+    [selectedAssassin, handleEditModalClose, handleEditSuccess]
+  );
+
   const detailsModalProps = useMemo(
     () => ({
       assassin: selectedAssassin!,
       onClose: handleDetailsModalClose,
       onUpdate: refetch,
+      onEdit: handleEditModalOpen,
     }),
-    [selectedAssassin, handleDetailsModalClose, refetch]
+    [selectedAssassin, handleDetailsModalClose, refetch, handleEditModalOpen]
   );
 
   const filtersProps = useMemo(
@@ -179,7 +207,12 @@ export const AssassinManagementPage: React.FC = React.memo(() => {
 
       {/* Modals */}
       {showCreateModal && <CreateAssassinForm {...createModalProps} />}
-      {selectedAssassin && <AssassinDetailsModal {...detailsModalProps} />}
+      {showEditModal && selectedAssassin && (
+        <EditAssassinModal {...editModalProps} />
+      )}
+      {selectedAssassin && !showEditModal && (
+        <AssassinDetailsModal {...detailsModalProps} />
+      )}
     </div>
   );
 });

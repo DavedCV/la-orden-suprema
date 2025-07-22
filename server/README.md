@@ -28,60 +28,192 @@ Backend API for the La Orden Suprema assassin management system, built with Expr
 ## Prerequisites
 
 - Node.js 18+
-- MongoDB 6+
+- MongoDB 6+ (local or MongoDB Atlas)
 - npm or yarn
 
-## Installation
+## 🚀 Quick Start
 
-1. **Install dependencies**:
+### 1. Install Dependencies
+
 ```bash
+# From the server directory
 npm install
 ```
 
-2. **Set up environment variables**:
-Copy `.env.example` to `.env` and configure:
+### 2. Set Up Environment Variables
+
+Create a `.env` file in the server directory:
+
 ```bash
-cp .env.example .env
+# Create the file
+touch .env
 ```
 
-3. **Start MongoDB** (if running locally):
+Add the following configuration to `.env`:
+
+```env
+# Database Configuration
+MONGODB_URI=mongodb://localhost:27017/la-orden-suprema
+# For MongoDB Atlas: mongodb+srv://username:password@cluster.mongodb.net/la-orden-suprema
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_EXPIRES_IN=7d
+
+# Server Configuration
+PORT=3001
+NODE_ENV=development
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:5173
+
+# Rate Limiting
+RATE_LIMIT_WINDOW=15
+RATE_LIMIT_MAX=100
+```
+
+### 3. Start MongoDB
+
+**Option A: Local MongoDB**
+
 ```bash
+# Start MongoDB service
 mongod
+
+# Or on macOS with Homebrew:
+brew services start mongodb-community
+
+# Or on Ubuntu/Debian:
+sudo systemctl start mongod
 ```
 
-4. **Run the development server**:
+**Option B: MongoDB Atlas**
+
+- Ensure your connection string in `.env` is correct
+- Whitelist your IP address in MongoDB Atlas
+
+### 4. Seed the Database (Recommended)
+
+Create initial data including an admin user:
+
 ```bash
+# Run the seeding script
+npm run seed
+```
+
+This creates:
+
+- **Admin user**: `admin@laorden.com` / password: `admin123`
+- 5 sample assassins with various skills and statuses
+- 10 sample missions in different states
+- Sample blood markers between assassins
+
+### 5. Run the Development Server
+
+```bash
+# Start the development server with hot reload
 npm run dev
 ```
 
-The API will be available at `http://localhost:3001`
+The API will be available at: **http://localhost:3001**
 
-## Environment Variables
+### 6. Verify Installation
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/la-orden-suprema` |
-| `JWT_SECRET` | Secret key for JWT tokens | `your-super-secret-jwt-key` |
-| `JWT_EXPIRES_IN` | JWT token expiration | `7d` |
-| `PORT` | Server port | `3001` |
-| `NODE_ENV` | Environment mode | `development` |
-| `CORS_ORIGIN` | Allowed CORS origin | `http://localhost:5173` |
-| `RATE_LIMIT_WINDOW` | Rate limit window (minutes) | `15` |
-| `RATE_LIMIT_MAX` | Max requests per window | `100` |
+Test the API health endpoint:
 
-## API Endpoints
+```bash
+curl http://localhost:3001/health
+```
+
+You should see:
+
+```json
+{
+  "status": "OK",
+  "message": "La Orden Suprema API is running",
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+
+## 📦 Available Scripts
+
+```bash
+npm run dev                  # Start development server with hot reload
+npm run build                # Compile TypeScript to JavaScript
+npm start                    # Start production server
+npm run lint                 # Run ESLint
+npm run test                 # Run tests (when available)
+npm run seed                 # Seed database with sample data
+npm run clean-blood-markers  # Clean up old blood marker data
+```
+
+## 🔧 Environment Variables
+
+| Variable            | Description                 | Default                                      | Required |
+| ------------------- | --------------------------- | -------------------------------------------- | -------- |
+| `MONGODB_URI`       | MongoDB connection string   | `mongodb://localhost:27017/la-orden-suprema` | Yes      |
+| `JWT_SECRET`        | Secret key for JWT tokens   | -                                            | Yes      |
+| `JWT_EXPIRES_IN`    | JWT token expiration time   | `7d`                                         | No       |
+| `PORT`              | Server port                 | `3001`                                       | No       |
+| `NODE_ENV`          | Environment mode            | `development`                                | No       |
+| `CORS_ORIGIN`       | Allowed CORS origin         | `http://localhost:5173`                      | Yes      |
+| `RATE_LIMIT_WINDOW` | Rate limit window (minutes) | `15`                                         | No       |
+| `RATE_LIMIT_MAX`    | Max requests per window     | `100`                                        | No       |
+
+## 📁 Project Structure
+
+```
+server/
+├── src/
+│   ├── app.ts              # Express app setup and middleware
+│   ├── config/             # Configuration files
+│   │   └── database.ts     # MongoDB connection
+│   ├── controllers/        # Route controllers
+│   │   ├── auth.ts         # Authentication logic
+│   │   ├── assassins.ts    # Assassin management
+│   │   ├── missions.ts     # Mission management
+│   │   ├── bloodMarkers.ts # Blood marker system
+│   │   ├── dashboard.ts    # Dashboard data
+│   │   └── profile.ts      # User profile management
+│   ├── middleware/         # Custom middleware
+│   │   ├── auth.ts         # JWT verification
+│   │   └── validation.ts   # Request validation
+│   ├── models/             # Mongoose models
+│   │   ├── User.ts         # User/Assassin model
+│   │   ├── Mission.ts      # Mission model
+│   │   └── BloodMarker.ts  # Blood marker model
+│   ├── routes/             # API routes
+│   │   └── ...             # Route definitions
+│   ├── types/              # TypeScript types
+│   └── utils/              # Utility functions
+│       ├── errors.ts       # Custom error classes
+│       └── jwt.ts          # JWT helpers
+├── scripts/                # Utility scripts
+│   ├── seed.js             # Database seeding
+│   └── clean-blood-markers.js # Cleanup script
+├── dist/                   # Compiled JavaScript (after build)
+├── .env                    # Environment variables (create this)
+├── .env.example            # Example environment file
+├── package.json            # Dependencies and scripts
+└── tsconfig.json           # TypeScript configuration
+```
+
+## 🔐 API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/login` - Login user
 - `POST /api/auth/logout` - Logout user
 - `GET /api/auth/validate` - Validate JWT token
 - `POST /api/auth/refresh` - Refresh JWT token
 
 ### Dashboard
+
 - `GET /api/dashboard/admin` - Get admin dashboard data
 - `GET /api/dashboard/assassin` - Get assassin dashboard data
 
 ### User Management (Admin only)
+
 - `GET /api/assassins` - Get paginated assassins list
 - `POST /api/assassins` - Create new assassin
 - `GET /api/assassins/search` - Search assassins
@@ -90,6 +222,7 @@ The API will be available at `http://localhost:3001`
 - `DELETE /api/assassins/:id` - Delete/excommunicate assassin
 
 ### Missions
+
 - `GET /api/missions` - Get missions (Admin)
 - `GET /api/missions/available` - Get available missions (Assassin)
 - `POST /api/missions` - Create mission (Admin)
@@ -100,6 +233,7 @@ The API will be available at `http://localhost:3001`
 - `DELETE /api/missions/:id` - Delete mission (Admin)
 
 ### Blood Markers (Debts)
+
 - `GET /api/blood-markers` - Get blood markers
 - `POST /api/blood-markers` - Create blood marker request
 - `GET /api/blood-markers/user/:userId` - Get user's blood markers
@@ -109,6 +243,7 @@ The API will be available at `http://localhost:3001`
 - `DELETE /api/blood-markers/:id` - Delete blood marker (Admin)
 
 ### Profile Management
+
 - `GET /api/profile` - Get current user profile
 - `PATCH /api/profile` - Update profile
 - `PATCH /api/profile/password` - Change password
@@ -119,16 +254,19 @@ The API will be available at `http://localhost:3001`
 ## Data Models
 
 ### User/Assassin
+
 - Basic user information (alias, email, role)
 - Assassin-specific fields (goldCoins, skills, status, missions completed)
 - Authentication fields (password hash, first login flags)
 
 ### Mission
+
 - Mission details (title, description, target, reward)
 - Assignment tracking (assignedTo, assignedAt, status)
 - Deadlines and priority levels
 
 ### Blood Marker
+
 - Debt relationship between assassins
 - Status tracking (pending, paid, confirmed, settled)
 - Request/response workflow
@@ -146,6 +284,7 @@ The API will be available at `http://localhost:3001`
 ## Development
 
 ### Scripts
+
 - `npm run dev` - Start development server with hot reload
 - `npm run build` - Build TypeScript to JavaScript
 - `npm start` - Start production server
@@ -153,26 +292,14 @@ The API will be available at `http://localhost:3001`
 - `npm test` - Run tests
 
 ### Database Seeding
+
 Default admin account:
+
 - Email: `admin@orden.com`
 - Password: `admin123`
 - Role: `admin`
 
-## Deployment
-
-1. **Build the application**:
-```bash
-npm run build
-```
-
-2. **Set production environment variables**
-
-3. **Start the production server**:
-```bash
-npm start
-```
-
-## API Response Format
+## 📝 API Response Format
 
 All API responses follow this format:
 
@@ -191,25 +318,124 @@ All API responses follow this format:
 }
 ```
 
-## Error Handling
+## 🚨 Troubleshooting
 
-The API uses custom error classes and centralized error handling:
+### Common Issues
 
-- `400` - Validation Error
-- `401` - Unauthorized
-- `403` - Forbidden
-- `404` - Not Found
-- `409` - Conflict
-- `500` - Internal Server Error
+1. **MongoDB Connection Failed**
 
-## Contributing
+   ```
+   Error: connect ECONNREFUSED 127.0.0.1:27017
+   ```
 
-1. Follow TypeScript best practices
-2. Use Joi for input validation
-3. Add proper error handling
-4. Include JSDoc comments for API endpoints
-5. Test your changes thoroughly
+   - Solution: Ensure MongoDB is running
+   - Check: `mongod --version` to verify installation
+   - Start: `mongod` or `brew services start mongodb-community`
 
-## License
+2. **JWT_SECRET Not Set**
 
-This project is part of a university assignment for Web Development course.
+   ```
+   Error: JWT_SECRET is required
+   ```
+
+   - Solution: Create `.env` file with JWT_SECRET
+   - Never commit `.env` to version control
+
+3. **Port Already in Use**
+
+   ```
+   Error: listen EADDRINUSE: address already in use :::3001
+   ```
+
+   - Solution: Kill the process or use a different port
+
+   ```bash
+   lsof -ti:3001 | xargs kill -9
+   # Or change PORT in .env
+   ```
+
+4. **CORS Issues**
+
+   ```
+   Access to fetch at 'http://localhost:3001' from origin 'http://localhost:5173' has been blocked by CORS
+   ```
+
+   - Solution: Update CORS_ORIGIN in `.env` to match frontend URL
+
+5. **TypeScript Build Errors**
+   ```bash
+   # Clear and rebuild
+   rm -rf dist
+   npm run build
+   ```
+
+## 🧪 Testing the API
+
+### Using cURL
+
+Login:
+
+```bash
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@laorden.com", "password": "admin123"}'
+```
+
+Get Dashboard (with token):
+
+```bash
+curl http://localhost:3001/api/dashboard/admin \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Using Postman or Insomnia
+
+1. Import the API collection (if available)
+2. Set up environment variables
+3. Use the login endpoint to get a token
+4. Add token to Authorization header for protected routes
+
+## 🚢 Production Deployment
+
+### 1. Environment Setup
+
+Create production `.env`:
+
+```env
+NODE_ENV=production
+MONGODB_URI=mongodb+srv://prod-user:password@cluster.mongodb.net/la-orden-suprema
+JWT_SECRET=use-a-very-strong-secret-key-here
+CORS_ORIGIN=https://your-frontend-domain.com
+```
+
+### 2. Build the Application
+
+```bash
+npm run build
+```
+
+### 3. Start Production Server
+
+```bash
+npm start
+```
+
+## 🔒 Security Best Practices
+
+1. **Environment Variables**
+
+   - Never commit `.env` files
+   - Use different secrets for each environment
+   - Rotate JWT secrets regularly
+
+2. **Database Security**
+
+   - Enable MongoDB authentication
+   - Use connection string with credentials
+   - Restrict network access
+
+3. **API Security**
+   - Rate limiting enabled
+   - Helmet.js for security headers
+   - Input validation with Joi
+   - Parameterized queries (Mongoose)

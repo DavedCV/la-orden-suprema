@@ -29,184 +29,154 @@ A comprehensive management system for The Continental inspired by the John Wick 
 - **React Hook Form** with **Zod** validation
 - **React Query** for API state management
 
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js (v18 or higher)
-- MongoDB (local or Atlas)
-- npm or yarn
+- MongoDB (local installation or MongoDB Atlas account)
+- npm or yarn package manager
 
-### Installation
-
-1. **Clone the repository**
+### 1️⃣ Clone the Repository
 ```bash
 git clone <repository-url>
 cd la-orden-suprema
 ```
 
-2. **Install dependencies**
+### 2️⃣ Install Dependencies
+
+**Option A: Install all dependencies at once (Recommended)**
+```bash
+# From the root directory
+npm run install:all
+```
+
+**Option B: Install manually**
 ```bash
 # Install root dependencies
 npm install
 
-# Install server dependencies
+# Install backend dependencies
 cd server
 npm install
 
-# Install client dependencies
+# Install frontend dependencies
 cd ../client
 npm install
+cd ..
 ```
 
-3. **Environment Setup**
+### 3️⃣ Set Up Environment Variables
 
 Create a `.env` file in the `server` directory:
+```bash
+cd server
+touch .env
+```
+
+Add the following content to `server/.env`:
 ```env
 # Database
 MONGODB_URI=mongodb://localhost:27017/la-orden-suprema
+# For MongoDB Atlas, use: mongodb+srv://username:password@cluster.mongodb.net/la-orden-suprema
 
 # JWT
-JWT_SECRET=your-super-secret-jwt-key-here
+JWT_SECRET=your-super-secret-jwt-key-here-change-this-in-production
 JWT_EXPIRES_IN=7d
 
 # Server
 PORT=3001
 NODE_ENV=development
 
-# CORS
-CORS_ORIGIN=http://localhost:3000
+# CORS (Frontend URL)
+CORS_ORIGIN=http://localhost:5173
 
 # Rate Limiting
 RATE_LIMIT_WINDOW=15
 RATE_LIMIT_MAX=100
 ```
 
-4. **Start the applications**
+### 4️⃣ Start MongoDB
 
-**Option 1: Start both servers manually**
+**If using local MongoDB:**
 ```bash
-# Terminal 1: Start the backend
+# Make sure MongoDB is installed and start it
+mongod
+
+# Or on macOS with Homebrew:
+brew services start mongodb-community
+```
+
+**If using MongoDB Atlas:**
+- Make sure to update the `MONGODB_URI` in your `.env` file with your connection string
+
+### 5️⃣ Seed the Database (Optional but Recommended)
+
+Create initial data including an admin user:
+```bash
+# From the root directory
+npm run seed
+
+# Or from the server directory
+cd server
+npm run seed
+```
+
+This will create:
+- An admin user: `admin@laorden.com` / password: `admin123`
+- Sample assassins
+- Sample missions
+- Sample blood markers
+
+### 6️⃣ Run the Application
+
+**Option A: Start both frontend and backend together (Recommended)**
+```bash
+# From the root directory
+npm run dev
+```
+
+**Option B: Start separately in different terminals**
+```bash
+# Terminal 1 - Backend (from root)
+npm run dev:server
+
+# Terminal 2 - Frontend (from root)
+npm run dev:client
+```
+
+**Option C: Start from individual directories**
+```bash
+# Terminal 1 - Backend
 cd server
 npm run dev
 
-# Terminal 2: Start the frontend
+# Terminal 2 - Frontend
 cd client
 npm run dev
 ```
 
-**Option 2: Start both from root (if configured)**
-```bash
-npm run dev
-```
+### 7️⃣ Access the Application
 
-### Creating Initial Admin User
-
-Since the application uses a closed registration system, you'll need to create an initial admin user. You can do this by:
-
-1. **Direct database insertion** (MongoDB):
-```javascript
-// Connect to your MongoDB and run:
-db.users.insertOne({
-  alias: "El Director",
-  email: "admin@laorden.com",
-  password: "$2a$12$hashedPasswordHere", // Use bcrypt to hash "admin123"
-  role: "admin",
-  isFirstLogin: false,
-  temporaryPassword: false,
-  createdAt: new Date(),
-  updatedAt: new Date()
-});
-```
-
-2. **Using MongoDB Compass or similar tools** to insert the initial admin user.
-
-3. **Create a seeding script** (recommended for development).
-
-### Default Access URLs
-
-- **Frontend**: http://localhost:3000
+- **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:3001/api
-- **Health Check**: http://localhost:3001/health
+- **API Health Check**: http://localhost:3001/health
 
-## API Endpoints
+### 8️⃣ Login Credentials
 
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/validate` - Validate JWT token
-- `POST /api/auth/refresh` - Refresh JWT token
+After seeding, you can login with:
+- **Admin**: `admin@laorden.com` / `admin123`
+- **Assassin**: Check the console output after seeding for assassin credentials
 
-### Dashboard
-- `GET /api/dashboard/admin` - Admin dashboard data
-- `GET /api/dashboard/assassin` - Assassin dashboard data
+## 📁 Project Structure
 
-### User Management (Admin only)
-- `GET /api/assassins` - List assassins with pagination
-- `POST /api/assassins` - Create new assassin
-- `GET /api/assassins/:id` - Get assassin details
-- `PATCH /api/assassins/:id` - Update assassin
-- `PATCH /api/assassins/:id/status` - Update assassin status
-
-### Missions
-- `GET /api/missions` - List missions with filters
-- `POST /api/missions` - Create new mission (Admin)
-- `GET /api/missions/available` - Available missions for assassins
-- `POST /api/missions/:id/assign` - Assign mission (Admin)
-- `PATCH /api/missions/:id/status` - Update mission status
-
-### Blood Markers (Debts)
-- `GET /api/blood-markers` - List blood markers
-- `POST /api/blood-markers` - Create new blood marker request
-- `POST /api/blood-markers/:id/respond` - Accept/reject blood marker
-- `POST /api/blood-markers/:id/pay` - Mark as paid
-- `POST /api/blood-markers/:id/confirm` - Confirm payment
-
-### Profile
-- `GET /api/profile` - Get user profile
-- `PATCH /api/profile` - Update profile
-- `PATCH /api/profile/password` - Change password
-
-## Security Features
-
-- **JWT Authentication**: Secure token-based authentication
-- **Password Hashing**: bcrypt with salt rounds
-- **Rate Limiting**: 100 requests per 15 minutes per IP
-- **CORS Protection**: Configurable CORS origins
-- **Input Validation**: Joi schema validation
-- **Role-based Access**: Admin and Assassin roles with different permissions
-- **Excommunication**: Ability to block access for specific users
-
-## Business Rules
-
-### User Roles
-- **Admin ("La Orden")**: Can manage all assassins, missions, and view global data
-- **Assassin**: Can view their own data, apply to missions, manage blood markers
-
-### Mission Lifecycle
-1. **No Asignada**: Available for assignment
-2. **Asignada**: Assigned to an assassin
-3. **En Progreso**: Assassin is working on it
-4. **Completada**: Successfully completed
-5. **Fallida**: Mission failed
-
-### Blood Marker System
-1. **Solicitud Pendiente**: Initial request requiring acceptance
-2. **Pendiente**: Active debt
-3. **Pago Pendiente de Confirmación**: Debtor marked as paid, awaiting creditor confirmation
-4. **Saldado**: Debt settled and confirmed
-5. **Rechazada**: Request was rejected
-
-## Development
-
-### Project Structure
 ```
 la-orden-suprema/
-├── client/                 # React frontend
+├── client/                 # React frontend application
 │   ├── src/
 │   │   ├── features/      # Feature-based modules
 │   │   ├── shared/        # Shared components, hooks, services
 │   │   └── ...
-├── server/                # Express backend
+├── server/                # Express backend API
 │   ├── src/
 │   │   ├── controllers/   # Route handlers
 │   │   ├── models/        # Database models
@@ -214,25 +184,125 @@ la-orden-suprema/
 │   │   ├── middleware/    # Custom middleware
 │   │   └── ...
 ├── docs/                  # Documentation
-└── shared/               # Shared types/utilities
+├── scripts/              # Utility scripts
+└── shared/               # Shared types/utilities between frontend and backend
 ```
 
-### Key Technologies
+## 🛠️ Development Commands
 
-- **Monorepo Structure**: Organized as a monorepo with separate client/server
-- **TypeScript**: Full type safety across the stack
-- **Feature-Sliced Design**: Frontend organized by features
-- **API-First**: RESTful API design with proper HTTP status codes
-- **Real-time Ready**: Architecture supports future WebSocket integration
+### Root Directory Commands
+```bash
+npm run dev              # Start both frontend and backend
+npm run build            # Build both applications
+npm run install:all      # Install all dependencies
+npm run seed             # Seed the database
+```
 
-## Contributing
+### Frontend Commands (from `client/` directory)
+```bash
+npm run dev              # Start development server (port 5173)
+npm run build            # Build for production
+npm run preview          # Preview production build
+npm run lint             # Run ESLint
+```
+
+### Backend Commands (from `server/` directory)
+```bash
+npm run dev              # Start development server (port 3001)
+npm run build            # Compile TypeScript
+npm start                # Start production server
+npm run seed             # Seed database with sample data
+npm run lint             # Run ESLint
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **MongoDB Connection Error**
+   - Ensure MongoDB is running: `mongod` or `brew services start mongodb-community`
+   - Check if the MongoDB URI in `.env` is correct
+   - For MongoDB Atlas, ensure your IP is whitelisted
+
+2. **Port Already in Use**
+   - Frontend default port: 5173
+   - Backend default port: 3001
+   - Kill the process using the port or change it in the configuration
+
+3. **CORS Errors**
+   - Ensure `CORS_ORIGIN` in backend `.env` matches your frontend URL
+   - Default frontend URL is `http://localhost:5173`
+
+4. **Authentication Issues**
+   - Clear browser localStorage
+   - Ensure JWT_SECRET is set in backend `.env`
+   - Check if the token is being sent in requests
+
+5. **Dependencies Issues**
+   ```bash
+   # Clean install
+   rm -rf node_modules package-lock.json
+   rm -rf client/node_modules client/package-lock.json
+   rm -rf server/node_modules server/package-lock.json
+   npm run install:all
+   ```
+
+## 🚢 Production Deployment
+
+### Backend Deployment
+1. Set production environment variables
+2. Build: `npm run build:server`
+3. Start: `npm run start:server`
+
+### Frontend Deployment
+1. Update API URL in frontend configuration
+2. Build: `npm run build:client`
+3. Serve the `client/dist` folder with a static server
+
+### Environment Variables for Production
+- Use strong, unique `JWT_SECRET`
+- Set `NODE_ENV=production`
+- Use proper MongoDB connection string with authentication
+- Update `CORS_ORIGIN` to match your frontend domain
+
+## 📝 API Documentation
+
+### Base URL
+```
+Development: http://localhost:3001/api
+Production: https://your-domain.com/api
+```
+
+### Authentication
+All protected endpoints require a JWT token in the Authorization header:
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+### Main Endpoints
+- **Auth**: `/api/auth/*`
+- **Dashboard**: `/api/dashboard/*`
+- **Assassins**: `/api/assassins/*`
+- **Missions**: `/api/missions/*`
+- **Blood Markers**: `/api/blood-markers/*`
+- **Profile**: `/api/profile/*`
+
+For detailed API documentation, see the backend README or API docs.
+
+## 📌 Additional Resources
+
+- [Frontend Documentation](./client/README.md)
+- [Backend Documentation](./server/README.md)
+- [API Endpoints Reference](./docs/api-reference.md)
+
+## 🤝 Contributing
 
 1. Follow the existing code style and structure
-2. Ensure all types are properly defined
+2. Ensure all types are properly defined (TypeScript)
 3. Add proper error handling
 4. Write meaningful commit messages
 5. Test your changes thoroughly
 
-## License
+## 📄 License
 
-This project is for educational purposes only.
+This project is for educational purposes as part of a university assignment.

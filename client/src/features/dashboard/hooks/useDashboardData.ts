@@ -34,11 +34,11 @@ export function useDashboardData(): DashboardDataReturn {
     enabled: user?.role === "assassin",
   });
 
-  // Fetch blood markers for assassins
+  // Fetch blood markers for assassins using the specific categorized endpoint
   const { data: bloodMarkersData, isLoading: isLoadingBloodMarkers } = useQuery({
-    queryKey: ["blood-markers"],
-    queryFn: () => apiService.getBloodMarkers(),
-    enabled: user?.role === "assassin",
+    queryKey: ["blood-markers-categorized", user?.id],
+    queryFn: () => user?.id ? apiService.getBloodMarkersByUser(user.id) : Promise.reject("No user"),
+    enabled: user?.role === "assassin" && !!user?.id,
   });
 
   // Fetch assassins data for blood marker names
@@ -52,7 +52,7 @@ export function useDashboardData(): DashboardDataReturn {
   const payMarkerMutation = useMutation({
     mutationFn: (markerId: string) => apiService.payBloodMarker(markerId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      queryClient.invalidateQueries({ queryKey: ["blood-markers-categorized"] });
       toast({
         type: "success",
         title: "Marcador pagado",
@@ -71,7 +71,7 @@ export function useDashboardData(): DashboardDataReturn {
   const confirmPaymentMutation = useMutation({
     mutationFn: (markerId: string) => apiService.confirmBloodMarkerPayment(markerId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      queryClient.invalidateQueries({ queryKey: ["blood-markers-categorized"] });
       toast({
         type: "success",
         title: "Pago confirmado",
@@ -90,7 +90,7 @@ export function useDashboardData(): DashboardDataReturn {
   // Computed values
   const isLoading = isLoadingAdmin || isLoadingAssassin || isLoadingBloodMarkers;
   const dashboardData = user?.role === "admin" ? adminData?.data : assassinData?.data;
-  const bloodMarkers = bloodMarkersData?.data || [];
+  const bloodMarkers = bloodMarkersData?.data?.all || [];
   const assassins = assassinsData?.data || [];
 
   return {

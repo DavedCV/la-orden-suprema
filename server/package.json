@@ -9,7 +9,8 @@
     "start": "node dist/app.js",
     "lint": "eslint src/**/*.ts",
     "test": "jest",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "clean-blood-markers": "node scripts/clean-blood-markers.js"
   },
   "dependencies": {
     "express": "^4.18.2",

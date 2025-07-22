@@ -1,10 +1,7 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../../shared/components/Button";
 import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
 import { useAuthStore } from "../../../shared/store/authStore";
-// import { useNavigation } from "../../../shared/hooks/useNavigation"; // Currently unused
-import { apiService } from "../../../shared/services/api";
 import { Plus, Skull, Filter, Users, Clock, CheckCircle } from "lucide-react";
 import { BloodMarkerCard } from "./BloodMarkerCard";
 import { BloodMarkerFilters } from "./BloodMarkerFilters";
@@ -12,6 +9,7 @@ import { BloodMarkerStats } from "./BloodMarkerStats";
 import { CreateBloodMarkerModal } from "./CreateBloodMarkerModal";
 import { BloodMarkerRequestModal } from "./BloodMarkerRequestModal";
 import { BloodMarkerDetailsModal } from "./BloodMarkerDetailsModal";
+import { useBloodMarkersData } from "../hooks/useBloodMarkersData";
 import type { BloodMarker } from "../../../shared/types";
 
 type FilterType =
@@ -22,6 +20,7 @@ type FilterType =
   | "sent_requests"
   | "settled"
   | "rejected";
+
 type StatusFilter =
   | "all"
   | "Solicitud Pendiente"
@@ -32,7 +31,6 @@ type StatusFilter =
 
 export function BloodMarkersPage() {
   const { user } = useAuthStore();
-  // const { navigateTo } = useNavigation(); // Removed as not used in current implementation
 
   // State management
   const [filterType, setFilterType] = React.useState<FilterType>("all");
@@ -44,78 +42,52 @@ export function BloodMarkersPage() {
   const [selectedDetails, setSelectedDetails] =
     React.useState<BloodMarker | null>(null);
 
-  // Fetch blood markers and assassins
+  // Use the updated hook that gets categorized data
   const {
-    data: bloodMarkersData,
-    isLoading: isLoadingMarkers,
-    refetch: refetchMarkers,
-  } = useQuery({
-    queryKey: ["blood-markers"],
-    queryFn: () => apiService.getBloodMarkers(),
-  });
+    bloodMarkers,
+    categorizedMarkers,
+    assassins,
+    isLoading,
+    refetchMarkers,
+  } = useBloodMarkersData();
 
-  const { data: assassinsData, isLoading: isLoadingAssassins } = useQuery({
-    queryKey: ["assassins"],
-    queryFn: () => apiService.getAssassins(),
-  });
+  // Get filtered markers based on current filter type using backend categorization
+  const getFilteredMarkers = React.useMemo(() => {
+    let filtered: BloodMarker[] = [];
 
-  const bloodMarkers = bloodMarkersData?.data || [];
-  const assassins = assassinsData?.data || [];
-
-  // Filter blood markers based on current filters
-  const filteredMarkers = React.useMemo(() => {
-    let filtered = bloodMarkers;
-
-    // Filter by type
-    if (filterType !== "all" && user) {
-      switch (filterType) {
-        case "owed_by_me":
-          filtered = filtered.filter(
-            (marker) =>
-              marker.debtorId === user.id &&
-              ["Pendiente", "Pago Pendiente de Confirmación"].includes(
-                marker.status
-              )
-          );
-          break;
-        case "owed_to_me":
-          filtered = filtered.filter(
-            (marker) =>
-              marker.creditorId === user.id &&
-              ["Pendiente", "Pago Pendiente de Confirmación"].includes(
-                marker.status
-              )
-          );
-          break;
-        case "pending_requests":
-          filtered = filtered.filter(
-            (marker) =>
-              marker.creditorId === user.id &&
-              marker.status === "Solicitud Pendiente"
-          );
-          break;
-        case "sent_requests":
-          filtered = filtered.filter(
-            (marker) =>
-              marker.debtorId === user.id &&
-              marker.status === "Solicitud Pendiente"
-          );
-          break;
-        case "settled":
-          filtered = filtered.filter((marker) => marker.status === "Saldado");
-          break;
-        case "rejected":
-          filtered = filtered.filter((marker) => marker.status === "Rechazada");
-          break;
-      }
+    // Use backend categorization instead of manual filtering
+    switch (filterType) {
+      case "all":
+        filtered = bloodMarkers;
+        break;
+      case "owed_by_me":
+        filtered = categorizedMarkers.debtsOwed;
+        break;
+      case "owed_to_me":
+        filtered = categorizedMarkers.debtsOwing;
+        break;
+      case "pending_requests":
+        filtered = categorizedMarkers.pendingRequests;
+        break;
+      case "sent_requests":
+        filtered = categorizedMarkers.sentRequests;
+        break;
+      case "settled":
+        filtered = categorizedMarkers.settledDebts;
+        break;
+      case "rejected":
+        filtered = categorizedMarkers.rejectedRequests;
+        break;
+      default:
+        filtered = bloodMarkers;
     }
 
-    // Filter by status
+    // Apply additional status filter if not "all"
     if (statusFilter !== "all") {
       filtered = filtered.filter((marker) => marker.status === statusFilter);
     }
 
-    // Filter by search query
+    // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((marker) => {
@@ -133,7 +105,14 @@ export function BloodMarkersPage() {
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [bloodMarkers, filterType, statusFilter, searchQuery, user, assassins]);
+  }, [
+    categorizedMarkers,
+    filterType,
+    statusFilter,
+    searchQuery,
+    bloodMarkers,
+    assassins,
+  ]);
 
   const handleCreateSuccess = () => {
     setShowCreateModal(false);
@@ -155,7 +134,7 @@ export function BloodMarkersPage() {
     { value: "rejected", label: "Rechazadas", icon: Filter },
   ];
 
-  if (isLoadingMarkers || isLoadingAssassins) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-orden-900 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -169,28 +148,31 @@ export function BloodMarkersPage() {
   return (
     <div className="min-h-screen bg-orden-900">
       {/* Header */}
-      <div className="bg-orden-800 border-b border-orden-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="bg-orden-800 border-b border-orden-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-orden-100 flex items-center">
-                <Skull className="h-6 w-6 mr-2 text-red-400" />
-                Blood Markers
-              </h1>
-              <p className="text-orden-400 mt-1">
-                Gestiona tus deudas y favores dentro de la orden
-              </p>
+            <div className="flex items-center space-x-3">
+              <Skull className="h-8 w-8 text-orden-500" />
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  Marcadores de Sangre
+                </h1>
+                <p className="text-orden-300">
+                  Gestiona tus deudas y favores con otros asesinos
+                </p>
+              </div>
             </div>
+
             <Button
               onClick={() => setShowCreateModal(true)}
               className="bg-red-600 hover:bg-red-700"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Crear Marcador
+              Nuevo Marcador
             </Button>
           </div>
         </div>
-      </div>
+      </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -214,16 +196,24 @@ export function BloodMarkersPage() {
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            {filteredMarkers.length === 0 ? (
+            {getFilteredMarkers.length === 0 ? (
               <div className="text-center py-12">
-                <Skull className="h-16 w-16 mx-auto mb-4 text-orden-600" />
+                <Skull className="h-12 w-12 text-orden-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-orden-300 mb-2">
-                  No hay marcadores de sangre
-                </h3>
-                <p className="text-orden-500 mb-6">
                   {filterType === "all"
-                    ? "Aún no tienes marcadores de sangre registrados."
-                    : "No hay marcadores que coincidan con los filtros seleccionados."}
+                    ? "No hay marcadores de sangre"
+                    : "No hay marcadores para este filtro"}
+                </h3>
+                <p className="text-orden-400 mb-6">
+                  {filterType === "pending_requests"
+                    ? "No tienes solicitudes pendientes de responder"
+                    : filterType === "sent_requests"
+                    ? "No has enviado solicitudes pendientes"
+                    : filterType === "owed_by_me"
+                    ? "No tienes deudas pendientes"
+                    : filterType === "owed_to_me"
+                    ? "No tienes deudas por cobrar"
+                    : "Crea tu primer marcador de sangre para establecer una deuda"}
                 </p>
                 {filterType === "all" && (
                   <Button
@@ -231,7 +221,7 @@ export function BloodMarkersPage() {
                     className="bg-red-600 hover:bg-red-700"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Crear tu primer marcador
+                    Crear Marcador
                   </Button>
                 )}
               </div>
@@ -239,13 +229,13 @@ export function BloodMarkersPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-orden-400">
-                    Mostrando {filteredMarkers.length} marcador
-                    {filteredMarkers.length !== 1 ? "es" : ""}
+                    Mostrando {getFilteredMarkers.length} marcador
+                    {getFilteredMarkers.length !== 1 ? "es" : ""}
                   </p>
                 </div>
 
                 <div className="grid gap-4">
-                  {filteredMarkers.map((marker) => (
+                  {getFilteredMarkers.map((marker) => (
                     <BloodMarkerCard
                       key={marker.id}
                       marker={marker}

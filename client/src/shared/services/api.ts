@@ -12,7 +12,6 @@ import type {
   Assassin,
   PaginatedResponse,
   AsassinStatus,
-  RespondToBloodMarkerForm,
 } from "../types";
 
 const API_BASE_URL =
@@ -308,9 +307,10 @@ class ApiService {
   }
 
   async respondToBloodMarkerRequest(
-    data: RespondToBloodMarkerForm
+    markerId: string,
+    data: { accepted: boolean; rejectionReason?: string }
   ): Promise<ApiResponse<BloodMarker>> {
-    return this.request(`/blood-markers/${data.markerId}/respond`, {
+    return this.request(`/blood-markers/${markerId}/respond`, {
       method: "PATCH",
       body: JSON.stringify({
         accepted: data.accepted,

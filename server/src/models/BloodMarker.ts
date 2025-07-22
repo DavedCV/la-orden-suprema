@@ -102,7 +102,33 @@ const BloodMarkerSchema = new Schema(
         ret.createdAt = ret.createdAt?.toISOString ? ret.createdAt.toISOString() : ret.createdAt;
 
         // For API compatibility, we expose the requester as debtor since they become the debtor when accepted
-        ret.debtorId = ret.requesterId;
+        // Extract ID from populated field or use the raw ID
+        if (ret.requesterId && typeof ret.requesterId === 'object') {
+          // Try different possible ID field names
+          if (ret.requesterId._id) {
+            ret.debtorId = ret.requesterId._id.toString();
+          } else if (ret.requesterId.id) {
+            ret.debtorId = ret.requesterId.id;
+          } else {
+            ret.debtorId = ret.requesterId.toString();
+          }
+        } else {
+          ret.debtorId = ret.requesterId;
+        }
+
+        // Handle creditorId - if it's populated, extract the id, otherwise use as-is
+        if (ret.creditorId && typeof ret.creditorId === 'object') {
+          // Try different possible ID field names
+          if (ret.creditorId._id) {
+            ret.creditorId = ret.creditorId._id.toString();
+          } else if (ret.creditorId.id) {
+            ret.creditorId = ret.creditorId.id;
+          } else {
+            ret.creditorId = ret.creditorId.toString();
+          }
+        }
+        // If it's already a string, leave it as-is
+
         delete ret.requesterId;
 
         if (ret.paidAt) {

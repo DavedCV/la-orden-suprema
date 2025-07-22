@@ -1,15 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiService } from "../../../shared/services/api";
 import { toast } from "../../../shared/utils/toast";
-import type { CreateBloodMarkerForm, RespondToBloodMarkerForm } from "../../../shared/types";
+import { useAuthStore } from "../../../shared/store/authStore";
+import type { CreateBloodMarkerForm } from "../../../shared/types";
 
 export function useBloodMarkersData() {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
 
-  // Fetch blood markers
+  // Fetch blood markers using the specific endpoint that categorizes automatically
   const { data: bloodMarkersData, isLoading: isLoadingMarkers, refetch: refetchMarkers } = useQuery({
-    queryKey: ["blood-markers"],
-    queryFn: () => apiService.getBloodMarkers(),
+    queryKey: ["blood-markers-categorized", user?.id],
+    queryFn: () => user?.id ? apiService.getBloodMarkersByUser(user.id) : Promise.reject("No user"),
+    enabled: !!user?.id,
   });
 
   // Fetch assassins for names
@@ -27,7 +30,7 @@ export function useBloodMarkersData() {
         title: "Solicitud enviada",
         message: response.message || "Tu solicitud de marcador de sangre ha sido enviada",
       });
-      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      queryClient.invalidateQueries({ queryKey: ["blood-markers-categorized"] });
       refetchMarkers();
     },
     onError: (error: unknown) => {
@@ -42,15 +45,18 @@ export function useBloodMarkersData() {
 
   // Respond to blood marker request mutation
   const respondToRequestMutation = useMutation({
-    mutationFn: (data: RespondToBloodMarkerForm) =>
-      apiService.respondToBloodMarkerRequest(data),
+    mutationFn: (data: { markerId: string; accepted: boolean; rejectionReason?: string }) =>
+      apiService.respondToBloodMarkerRequest(data.markerId, {
+        accepted: data.accepted,
+        rejectionReason: data.rejectionReason,
+      }),
     onSuccess: (response) => {
       toast({
         type: "success",
         title: "Respuesta enviada",
         message: response.message || "Tu respuesta ha sido registrada",
       });
-      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      queryClient.invalidateQueries({ queryKey: ["blood-markers-categorized"] });
       refetchMarkers();
     },
     onError: (error: unknown) => {
@@ -72,7 +78,7 @@ export function useBloodMarkersData() {
         title: "Marcador pagado",
         message: "Has marcado la deuda como pagada. Esperando confirmación.",
       });
-      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      queryClient.invalidateQueries({ queryKey: ["blood-markers-categorized"] });
       refetchMarkers();
     },
     onError: (error: unknown) => {
@@ -94,7 +100,7 @@ export function useBloodMarkersData() {
         title: "Pago confirmado",
         message: "El marcador ha sido saldado exitosamente",
       });
-      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      queryClient.invalidateQueries({ queryKey: ["blood-markers-categorized"] });
       refetchMarkers();
     },
     onError: (error: unknown) => {
@@ -107,9 +113,21 @@ export function useBloodMarkersData() {
     },
   });
 
+
+
+
+
   return {
-    // Data
-    bloodMarkers: bloodMarkersData?.data || [],
+    // Data - now using categorized data from backend
+    bloodMarkers: bloodMarkersData?.data?.all || [],
+    categorizedMarkers: bloodMarkersData?.data?.categorized || {
+      debtsOwed: [],
+      debtsOwing: [],
+      pendingRequests: [],
+      sentRequests: [],
+      settledDebts: [],
+      rejectedRequests: [],
+    },
     assassins: assassinsData?.data || [],
 
     // Loading states

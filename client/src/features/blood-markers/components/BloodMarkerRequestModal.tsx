@@ -5,10 +5,7 @@ import { apiService } from "../../../shared/services/api";
 import { toast } from "../../../shared/utils/toast";
 import { formatDate } from "../../../shared/utils";
 import { X, Skull, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
-import type {
-  BloodMarker,
-  RespondToBloodMarkerForm,
-} from "../../../shared/types";
+import type { BloodMarker } from "../../../shared/types";
 
 interface BloodMarkerRequestModalProps {
   request: BloodMarker;
@@ -27,8 +24,15 @@ export function BloodMarkerRequestModal({
   const [rejectionReason, setRejectionReason] = React.useState("");
 
   const respondMutation = useMutation({
-    mutationFn: (data: RespondToBloodMarkerForm) =>
-      apiService.respondToBloodMarkerRequest(data),
+    mutationFn: (data: {
+      markerId: string;
+      accepted: boolean;
+      rejectionReason?: string;
+    }) =>
+      apiService.respondToBloodMarkerRequest(data.markerId, {
+        accepted: data.accepted,
+        rejectionReason: data.rejectionReason,
+      }),
     onSuccess: (response) => {
       toast({
         type: "success",

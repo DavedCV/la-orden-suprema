@@ -122,9 +122,7 @@ const seedUsers = async () => {
     console.log("  Password: admin123");
     console.log("\nTest Assassins:");
     console.log("  John Wick - Email: john@laorden.com, Password: wick123");
-    console.log(
-      "  Helen Parker - Email: helen@laorden.com, Password: shadow123"
-    );
+    console.log("  Helen Parker - Email: n, Password: shadow123");
     console.log(
       "\n🚀 You can now start the application and test the integration!"
     );

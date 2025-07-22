@@ -61,8 +61,10 @@ export const getAssassins = async (req: AuthRequest, res: Response): Promise<voi
         role: 'assassin',
         status: 'Activo', // Only active assassins
       })
-        .select('id alias realName status joinDate completedMissions goldCoins') // Limited fields
+        .select('-password -email -isFirstLogin -temporaryPassword') // Exclude sensitive fields instead
         .sort({ alias: 1 });
+
+
 
       const response: ApiResponse<any[]> = {
         success: true,

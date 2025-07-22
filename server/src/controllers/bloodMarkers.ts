@@ -299,26 +299,35 @@ export const getBloodMarkersByUser = async (req: AuthRequest, res: Response): Pr
       .populate('creditorId', 'alias email')
       .sort({ createdAt: -1 });
 
+    // Helper function to safely get ID from populated or unpopulated field
+    const getId = (field: any): string => {
+      if (!field) return '';
+      if (typeof field === 'string') return field;
+      if (field._id) return field._id.toString();
+      if (field.toString) return field.toString();
+      return '';
+    };
+
     // Separate into categories for easier frontend handling
     const categorized = {
       // Debts where this user is the debtor (they requested to owe)
       debtsOwed: bloodMarkers.filter(marker =>
-        ((marker as any).requesterId as any)._id?.toString() === userId &&
+        getId((marker as any).requesterId) === userId &&
         ['Pendiente', 'Pago Pendiente de Confirmación'].includes(marker.status)
       ),
       // Debts where this user is owed (they are the creditor)
       debtsOwing: bloodMarkers.filter(marker =>
-        (marker.creditorId as any)._id?.toString() === userId &&
+        getId(marker.creditorId) === userId &&
         ['Pendiente', 'Pago Pendiente de Confirmación'].includes(marker.status)
       ),
       // Pending requests where this user needs to respond (they are the creditor)
       pendingRequests: bloodMarkers.filter(marker =>
-        (marker.creditorId as any)._id?.toString() === userId &&
+        getId(marker.creditorId) === userId &&
         marker.status === 'Solicitud Pendiente'
       ),
       // Requests this user sent that are still pending
       sentRequests: bloodMarkers.filter(marker =>
-        ((marker as any).requesterId as any)._id?.toString() === userId &&
+        getId((marker as any).requesterId) === userId &&
         marker.status === 'Solicitud Pendiente'
       ),
       // Settled debts involving this user
@@ -331,17 +340,84 @@ export const getBloodMarkersByUser = async (req: AuthRequest, res: Response): Pr
       ),
     };
 
+    // Fix the populated fields directly in the controller
+    const fixedBloodMarkers = bloodMarkers.map(marker => {
+      const json = marker.toJSON() as any;
+      // Extract just the ID from populated fields
+      if (json.debtorId && typeof json.debtorId === 'object') {
+        json.debtorId = (json.debtorId as any)._id || (json.debtorId as any).id || json.debtorId;
+      }
+      if (json.creditorId && typeof json.creditorId === 'object') {
+        json.creditorId = (json.creditorId as any)._id || (json.creditorId as any).id || json.creditorId;
+      }
+      return json;
+    });
+
     const response: ApiResponse<any> = {
       success: true,
       data: {
-        all: bloodMarkers.map(marker => marker.toJSON()),
+        all: fixedBloodMarkers,
         categorized: {
-          debtsOwed: categorized.debtsOwed.map(marker => marker.toJSON()),
-          debtsOwing: categorized.debtsOwing.map(marker => marker.toJSON()),
-          pendingRequests: categorized.pendingRequests.map(marker => marker.toJSON()),
-          sentRequests: categorized.sentRequests.map(marker => marker.toJSON()),
-          settledDebts: categorized.settledDebts.map(marker => marker.toJSON()),
-          rejectedRequests: categorized.rejectedRequests.map(marker => marker.toJSON()),
+          debtsOwed: categorized.debtsOwed.map(marker => {
+            const json = marker.toJSON() as any;
+            if (json.debtorId && typeof json.debtorId === 'object') {
+              json.debtorId = (json.debtorId as any)._id || (json.debtorId as any).id || json.debtorId;
+            }
+            if (json.creditorId && typeof json.creditorId === 'object') {
+              json.creditorId = (json.creditorId as any)._id || (json.creditorId as any).id || json.creditorId;
+            }
+            return json;
+          }),
+          debtsOwing: categorized.debtsOwing.map(marker => {
+            const json = marker.toJSON() as any;
+            if (json.debtorId && typeof json.debtorId === 'object') {
+              json.debtorId = (json.debtorId as any)._id || (json.debtorId as any).id || json.debtorId;
+            }
+            if (json.creditorId && typeof json.creditorId === 'object') {
+              json.creditorId = (json.creditorId as any)._id || (json.creditorId as any).id || json.creditorId;
+            }
+            return json;
+          }),
+          pendingRequests: categorized.pendingRequests.map(marker => {
+            const json = marker.toJSON() as any;
+            if (json.debtorId && typeof json.debtorId === 'object') {
+              json.debtorId = (json.debtorId as any)._id || (json.debtorId as any).id || json.debtorId;
+            }
+            if (json.creditorId && typeof json.creditorId === 'object') {
+              json.creditorId = (json.creditorId as any)._id || (json.creditorId as any).id || json.creditorId;
+            }
+            return json;
+          }),
+          sentRequests: categorized.sentRequests.map(marker => {
+            const json = marker.toJSON() as any;
+            if (json.debtorId && typeof json.debtorId === 'object') {
+              json.debtorId = (json.debtorId as any)._id || (json.debtorId as any).id || json.debtorId;
+            }
+            if (json.creditorId && typeof json.creditorId === 'object') {
+              json.creditorId = (json.creditorId as any)._id || (json.creditorId as any).id || json.creditorId;
+            }
+            return json;
+          }),
+          settledDebts: categorized.settledDebts.map(marker => {
+            const json = marker.toJSON() as any;
+            if (json.debtorId && typeof json.debtorId === 'object') {
+              json.debtorId = (json.debtorId as any)._id || (json.debtorId as any).id || json.debtorId;
+            }
+            if (json.creditorId && typeof json.creditorId === 'object') {
+              json.creditorId = (json.creditorId as any)._id || (json.creditorId as any).id || json.creditorId;
+            }
+            return json;
+          }),
+          rejectedRequests: categorized.rejectedRequests.map(marker => {
+            const json = marker.toJSON() as any;
+            if (json.debtorId && typeof json.debtorId === 'object') {
+              json.debtorId = (json.debtorId as any)._id || (json.debtorId as any).id || json.debtorId;
+            }
+            if (json.creditorId && typeof json.creditorId === 'object') {
+              json.creditorId = (json.creditorId as any)._id || (json.creditorId as any).id || json.creditorId;
+            }
+            return json;
+          }),
         },
       },
     };

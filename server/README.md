@@ -95,7 +95,7 @@ The API will be available at `http://localhost:3001`
 - `POST /api/missions` - Create mission (Admin)
 - `PUT /api/missions/:id` - Update mission (Admin)
 - `PATCH /api/missions/:id/assign` - Assign mission (Admin)
-- `POST /api/missions/:id/apply` - Apply to mission (Assassin)
+- `POST /api/missions/:id/apply` - Take mission (Assassin)
 - `PATCH /api/missions/:id/status` - Update mission status
 - `DELETE /api/missions/:id` - Delete mission (Admin)
 

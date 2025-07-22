@@ -49,6 +49,7 @@ export function AssignMissionForm({
     onSuccess: () => {
       // Invalidate and refetch relevant queries
       queryClient.invalidateQueries({ queryKey: ["missions"] });
+      queryClient.invalidateQueries({ queryKey: ["assassin-missions"] });
       queryClient.invalidateQueries({ queryKey: ["assassins"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["available-missions"] });
@@ -201,7 +202,7 @@ export function AssignMissionForm({
                     <div className="flex items-center text-xs">
                       <Coins className="h-3 w-3 text-gold-400 mr-1" />
                       <span className="text-gold-400">
-                        {formatCurrency(selectedAssassin.goldCoins)}
+                        {formatCurrency(selectedAssassin.goldCoins || 0)}
                       </span>
                     </div>
                   </div>
@@ -331,7 +332,7 @@ function AssassinCard({
         <div className="text-right">
           <div className="flex items-center text-xs text-gold-400 mb-1">
             <Coins className="h-3 w-3 mr-1" />
-            {formatCurrency(assassin.goldCoins)}
+            {formatCurrency(assassin.goldCoins || 0)}
           </div>
           <p className="text-xs text-orden-400">
             {assassin.completedMissions} misiones

@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { BloodMarker as IBloodMarker, BloodMarkerStatus } from '../types';
 
-export interface BloodMarkerDocument extends Omit<IBloodMarker, 'id' | 'paidAt' | 'confirmedAt'>, Document {
+export interface BloodMarkerDocument extends Omit<IBloodMarker, 'id' | 'paidAt' | 'confirmedAt' | 'rejectedAt'>, Document {
   _id: mongoose.Types.ObjectId;
   // These are Date objects in the database but strings in the API
   paidAt?: Date;
@@ -9,29 +9,34 @@ export interface BloodMarkerDocument extends Omit<IBloodMarker, 'id' | 'paidAt' 
   rejectedAt?: Date;
   rejectionReason?: string;
   // Methods
+  isPendingRequest(): boolean;
   isPending(): boolean;
-  isPaid(): boolean;
+  isPaidPendingConfirmation(): boolean;
   isSettled(): boolean;
+  isRejected(): boolean;
   canBePaidBy(userId: string): boolean;
   canBeConfirmedBy(userId: string): boolean;
+  canBeRespondedToBy(userId: string): boolean;
 }
 
 const BloodMarkerSchema = new Schema(
   {
-    debtorId: {
+    // The person who WANTS TO OWE the debt (person requesting to take on debt)
+    requesterId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Debtor ID is required'],
+      required: [true, 'Requester ID is required'],
     },
+    // The person who will BE OWED the debt (person who will receive the favor)
     creditorId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Creditor ID is required'],
       validate: {
         validator: function(v: mongoose.Types.ObjectId) {
-          return !(this as any).debtorId || !v.equals((this as any).debtorId);
+          return !(this as any).requesterId || !v.equals((this as any).requesterId);
         },
-        message: 'Creditor and debtor cannot be the same person',
+        message: 'Requester and creditor cannot be the same person',
       },
     },
     description: {
@@ -47,31 +52,31 @@ const BloodMarkerSchema = new Schema(
       default: 'Solicitud Pendiente',
       required: [true, 'Blood marker status is required'],
     },
+    // When the debt was marked as paid by the debtor
     paidAt: {
       type: Date,
       validate: {
         validator: function(v: Date) {
-          // If status is paid pending confirmation or settled, paidAt should be set
           return !['Pago Pendiente de Confirmación', 'Saldado'].includes((this as any).status) || v != null;
         },
         message: 'Payment date is required for paid blood markers',
       },
     },
+    // When the payment was confirmed by the creditor
     confirmedAt: {
       type: Date,
       validate: {
         validator: function(v: Date) {
-          // If status is settled, confirmedAt should be set
           return (this as any).status !== 'Saldado' || v != null;
         },
         message: 'Confirmation date is required for settled blood markers',
       },
     },
+    // When the request was rejected by the creditor
     rejectedAt: {
       type: Date,
       validate: {
         validator: function(v: Date) {
-          // If status is rejected, rejectedAt should be set
           return (this as any).status !== 'Rechazada' || v != null;
         },
         message: 'Rejection date is required for rejected blood markers',
@@ -83,7 +88,6 @@ const BloodMarkerSchema = new Schema(
       maxlength: [200, 'Rejection reason cannot exceed 200 characters'],
       validate: {
         validator: function(v: string) {
-          // If status is rejected, rejection reason should be provided
           return (this as any).status !== 'Rechazada' || Boolean(v && v.length > 0);
         },
         message: 'Rejection reason is required for rejected blood markers',
@@ -96,6 +100,10 @@ const BloodMarkerSchema = new Schema(
       transform: function(doc, ret: any) {
         ret.id = ret._id?.toString();
         ret.createdAt = ret.createdAt?.toISOString ? ret.createdAt.toISOString() : ret.createdAt;
+
+        // For API compatibility, we expose the requester as debtor since they become the debtor when accepted
+        ret.debtorId = ret.requesterId;
+        delete ret.requesterId;
 
         if (ret.paidAt) {
           ret.paidAt = ret.paidAt.toISOString ? ret.paidAt.toISOString() : ret.paidAt;
@@ -119,11 +127,11 @@ const BloodMarkerSchema = new Schema(
 );
 
 // Indexes for better query performance
-BloodMarkerSchema.index({ debtorId: 1 });
+BloodMarkerSchema.index({ requesterId: 1 });
 BloodMarkerSchema.index({ creditorId: 1 });
 BloodMarkerSchema.index({ status: 1 });
 BloodMarkerSchema.index({ createdAt: -1 });
-BloodMarkerSchema.index({ debtorId: 1, status: 1 });
+BloodMarkerSchema.index({ requesterId: 1, status: 1 });
 BloodMarkerSchema.index({ creditorId: 1, status: 1 });
 
 // Pre-save middleware for status transitions
@@ -150,11 +158,15 @@ BloodMarkerSchema.pre('save', function(next) {
 });
 
 // Instance methods
+BloodMarkerSchema.methods.isPendingRequest = function(): boolean {
+  return this.status === 'Solicitud Pendiente';
+};
+
 BloodMarkerSchema.methods.isPending = function(): boolean {
   return this.status === 'Pendiente';
 };
 
-BloodMarkerSchema.methods.isPaid = function(): boolean {
+BloodMarkerSchema.methods.isPaidPendingConfirmation = function(): boolean {
   return this.status === 'Pago Pendiente de Confirmación';
 };
 
@@ -162,42 +174,49 @@ BloodMarkerSchema.methods.isSettled = function(): boolean {
   return this.status === 'Saldado';
 };
 
-BloodMarkerSchema.methods.canBePaidBy = function(userId: string): boolean {
-  return this.status === 'Pendiente' && this.debtorId.toString() === userId;
+BloodMarkerSchema.methods.isRejected = function(): boolean {
+  return this.status === 'Rechazada';
 };
 
+// The requester (who becomes debtor when accepted) can pay the debt
+BloodMarkerSchema.methods.canBePaidBy = function(userId: string): boolean {
+  return this.status === 'Pendiente' && this.requesterId.toString() === userId;
+};
+
+// The creditor can confirm payment
 BloodMarkerSchema.methods.canBeConfirmedBy = function(userId: string): boolean {
   return this.status === 'Pago Pendiente de Confirmación' && this.creditorId.toString() === userId;
 };
 
-BloodMarkerSchema.methods.canBeRespondedBy = function(userId: string): boolean {
+// The creditor can respond to pending requests
+BloodMarkerSchema.methods.canBeRespondedToBy = function(userId: string): boolean {
   return this.status === 'Solicitud Pendiente' && this.creditorId.toString() === userId;
 };
 
 // Static methods
-BloodMarkerSchema.statics.findByDebtor = function(debtorId: string) {
-  return this.find({ debtorId }).populate('creditorId', 'alias email').sort({ createdAt: -1 });
+BloodMarkerSchema.statics.findByRequester = function(requesterId: string) {
+  return this.find({ requesterId }).populate('creditorId', 'alias email').sort({ createdAt: -1 });
 };
 
 BloodMarkerSchema.statics.findByCreditor = function(creditorId: string) {
-  return this.find({ creditorId }).populate('debtorId', 'alias email').sort({ createdAt: -1 });
+  return this.find({ creditorId }).populate('requesterId', 'alias email').sort({ createdAt: -1 });
 };
 
-BloodMarkerSchema.statics.findPendingRequests = function(userId: string) {
+BloodMarkerSchema.statics.findPendingRequests = function(creditorId: string) {
   return this.find({
-    creditorId: userId,
+    creditorId: creditorId,
     status: 'Solicitud Pendiente'
-  }).populate('debtorId', 'alias email').sort({ createdAt: -1 });
+  }).populate('requesterId', 'alias email').sort({ createdAt: -1 });
 };
 
 BloodMarkerSchema.statics.findByUser = function(userId: string) {
   return this.find({
     $or: [
-      { debtorId: userId },
+      { requesterId: userId },
       { creditorId: userId }
     ]
   })
-  .populate('debtorId', 'alias email')
+  .populate('requesterId', 'alias email')
   .populate('creditorId', 'alias email')
   .sort({ createdAt: -1 });
 };

@@ -41,7 +41,12 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       return;
     }
 
-    req.user = user as any;
+    // Ensure user object has both _id and id fields for compatibility
+    const userObj = user.toJSON();
+    req.user = {
+      ...userObj,
+      _id: user._id, // Keep original ObjectId for database operations
+    } as any;
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {

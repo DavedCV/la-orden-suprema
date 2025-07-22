@@ -15,18 +15,20 @@ export const getBloodMarkers = async (req: AuthRequest, res: Response): Promise<
     if (req.user.role === 'admin') {
       // Admins can see all blood markers
       bloodMarkers = await BloodMarker.find()
-        .populate('debtorId', 'alias email')
+        .populate('requesterId', 'alias email')
         .populate('creditorId', 'alias email')
         .sort({ createdAt: -1 });
     } else {
-      // Assassins can only see their own blood markers
+      // Assassins can only see their own blood markers (where they're either requester or creditor)
+      const userId = (req.user as any)._id?.toString() || req.user.id;
+
       bloodMarkers = await BloodMarker.find({
         $or: [
-          { debtorId: req.user.id },
-          { creditorId: req.user.id },
+          { requesterId: userId },
+          { creditorId: userId },
         ],
       })
-        .populate('debtorId', 'alias email')
+        .populate('requesterId', 'alias email')
         .populate('creditorId', 'alias email')
         .sort({ createdAt: -1 });
     }
@@ -50,52 +52,68 @@ export const createBloodMarker = async (req: AuthRequest, res: Response): Promis
 
     const markerData: CreateBloodMarkerForm = req.body;
 
-    // Validate that debtor and creditor are different
-    if (markerData.debtorId === markerData.creditorId) {
-      throw new ValidationError('Debtor and creditor cannot be the same person');
+    // The current user is requesting to take on a debt towards the specified creditor
+    const requesterId = (req.user as any)._id?.toString() || req.user.id;
+    const creditorId = markerData.creditorId;
+
+    // Remove debug logging
+
+    // Validate that requester and creditor are different
+    if (requesterId === creditorId) {
+      throw new ValidationError('Cannot create a blood marker to yourself');
     }
 
-    // Validate that both users exist and are assassins
-    const [debtor, creditor] = await Promise.all([
-      User.findOne({ _id: markerData.debtorId, role: 'assassin' }),
-      User.findOne({ _id: markerData.creditorId, role: 'assassin' }),
-    ]);
-
-    if (!debtor) {
-      throw new NotFoundError('Debtor not found');
-    }
-
+    // Validate that the creditor exists and is an assassin
+    const creditor = await User.findOne({ _id: creditorId, role: 'assassin' });
     if (!creditor) {
-      throw new NotFoundError('Creditor not found');
+      throw new NotFoundError('Creditor not found or is not an assassin');
     }
+
+    // Validate that the requester (current user) exists and is an assassin
+    const requester = await User.findOne({ _id: requesterId, role: 'assassin' });
+    if (!requester) {
+      throw new NotFoundError('Requester not found or is not an assassin');
+    }
+
+    // Users validated successfully
 
     // Check that both assassins are active
-    if (debtor.status === 'Excommunicado' || creditor.status === 'Excommunicado') {
+    if (requester.status === 'Excommunicado' || creditor.status === 'Excommunicado') {
       throw new ValidationError('Cannot create blood marker involving excommunicated assassins');
     }
 
-    // Only allow the requestor to be either the debtor or creditor
-    if (req.user.id !== markerData.debtorId && req.user.id !== markerData.creditorId) {
-      throw new ForbiddenError('You can only create blood markers involving yourself');
+    // Check for existing pending request between the same users
+    const existingRequest = await BloodMarker.findOne({
+      requesterId: requesterId,
+      creditorId: creditorId,
+      status: 'Solicitud Pendiente'
+    });
+
+    // Check completed
+
+    if (existingRequest) {
+      throw new ConflictError('You already have a pending blood marker request to this assassin');
     }
 
     const newBloodMarker = new BloodMarker({
-      debtorId: markerData.debtorId,
-      creditorId: markerData.creditorId,
+      requesterId: requesterId,
+      creditorId: creditorId,
       description: markerData.description,
-      status: 'Solicitud Pendiente', // All new markers start as pending requests
+      status: 'Solicitud Pendiente',
     });
 
     await newBloodMarker.save();
     await newBloodMarker.populate([
-      { path: 'debtorId', select: 'alias email' },
+      { path: 'requesterId', select: 'alias email' },
       { path: 'creditorId', select: 'alias email' }
     ]);
+
+    // Blood marker created successfully
 
     const response: ApiResponse<any> = {
       success: true,
       data: newBloodMarker.toJSON(),
-      message: 'Blood marker request sent successfully. Awaiting acceptance from the other party.',
+      message: `Blood marker request sent to ${creditor.alias}. You are requesting to owe them a favor. Awaiting their acceptance.`,
     };
 
     res.status(201).json(response);
@@ -119,7 +137,8 @@ export const respondToBloodMarkerRequest = async (req: AuthRequest, res: Respons
     }
 
     // Only the creditor can respond to pending requests
-    if (bloodMarker.creditorId.toString() !== req.user.id) {
+    const userId = (req.user as any)._id?.toString() || req.user.id;
+    if (bloodMarker.creditorId.toString() !== userId) {
       throw new ForbiddenError('Only the creditor can respond to this request');
     }
 
@@ -139,16 +158,17 @@ export const respondToBloodMarkerRequest = async (req: AuthRequest, res: Respons
 
     await bloodMarker.save();
     await bloodMarker.populate([
-      { path: 'debtorId', select: 'alias email' },
+      { path: 'requesterId', select: 'alias email' },
       { path: 'creditorId', select: 'alias email' }
     ]);
 
+    const requesterName = ((bloodMarker as any).requesterId as any).alias;
     const response: ApiResponse<any> = {
       success: true,
       data: bloodMarker.toJSON(),
       message: accepted
-        ? 'Blood marker request accepted. The debt is now active.'
-        : 'Blood marker request rejected.',
+        ? `Blood marker request accepted. ${requesterName} now owes you a favor.`
+        : `Blood marker request from ${requesterName} has been rejected.`,
     };
 
     res.status(200).json(response);
@@ -170,8 +190,9 @@ export const payBloodMarker = async (req: AuthRequest, res: Response): Promise<v
       throw new NotFoundError('Blood marker not found');
     }
 
-    // Only the debtor can pay their debt
-    if (bloodMarker.debtorId.toString() !== req.user.id) {
+    // Only the requester (who became the debtor) can pay their debt
+    const userId = (req.user as any)._id?.toString() || req.user.id;
+    if ((bloodMarker as any).requesterId.toString() !== userId) {
       throw new ForbiddenError('Only the debtor can pay this blood marker');
     }
 
@@ -181,18 +202,19 @@ export const payBloodMarker = async (req: AuthRequest, res: Response): Promise<v
     }
 
     bloodMarker.status = 'Pago Pendiente de Confirmación';
-    (bloodMarker as any).paidAt = new Date().toISOString();
+    bloodMarker.paidAt = new Date();
 
     await bloodMarker.save();
     await bloodMarker.populate([
-      { path: 'debtorId', select: 'alias email' },
+      { path: 'requesterId', select: 'alias email' },
       { path: 'creditorId', select: 'alias email' }
     ]);
 
+    const creditorName = (bloodMarker.creditorId as any).alias;
     const response: ApiResponse<any> = {
       success: true,
       data: bloodMarker.toJSON(),
-      message: 'Blood marker marked as paid. Awaiting confirmation from the creditor.',
+      message: `Blood marker marked as paid. Awaiting confirmation from ${creditorName}.`,
     };
 
     res.status(200).json(response);
@@ -215,7 +237,8 @@ export const confirmBloodMarkerPayment = async (req: AuthRequest, res: Response)
     }
 
     // Only the creditor can confirm payment
-    if (bloodMarker.creditorId.toString() !== req.user.id) {
+    const userId = (req.user as any)._id?.toString() || req.user.id;
+    if (bloodMarker.creditorId.toString() !== userId) {
       throw new ForbiddenError('Only the creditor can confirm payment of this blood marker');
     }
 
@@ -225,18 +248,19 @@ export const confirmBloodMarkerPayment = async (req: AuthRequest, res: Response)
     }
 
     bloodMarker.status = 'Saldado';
-    (bloodMarker as any).confirmedAt = new Date().toISOString();
+    bloodMarker.confirmedAt = new Date();
 
     await bloodMarker.save();
     await bloodMarker.populate([
-      { path: 'debtorId', select: 'alias email' },
+      { path: 'requesterId', select: 'alias email' },
       { path: 'creditorId', select: 'alias email' }
     ]);
 
+    const debtorName = ((bloodMarker as any).requesterId as any).alias;
     const response: ApiResponse<any> = {
       success: true,
       data: bloodMarker.toJSON(),
-      message: 'Blood marker payment confirmed. The debt has been settled.',
+      message: `Blood marker payment confirmed. The debt from ${debtorName} has been settled.`,
     };
 
     res.status(200).json(response);
@@ -254,7 +278,8 @@ export const getBloodMarkersByUser = async (req: AuthRequest, res: Response): Pr
     const { userId } = req.params;
 
     // Users can only view their own blood markers unless they're admin
-    if (req.user.role !== 'admin' && req.user.id !== userId) {
+    const currentUserId = (req.user as any)._id?.toString() || req.user.id;
+    if (req.user.role !== 'admin' && currentUserId !== userId) {
       throw new ForbiddenError('Access denied');
     }
 
@@ -266,31 +291,41 @@ export const getBloodMarkersByUser = async (req: AuthRequest, res: Response): Pr
 
     const bloodMarkers = await BloodMarker.find({
       $or: [
-        { debtorId: userId },
+        { requesterId: userId },
         { creditorId: userId },
       ],
     })
-      .populate('debtorId', 'alias email')
+      .populate('requesterId', 'alias email')
       .populate('creditorId', 'alias email')
       .sort({ createdAt: -1 });
 
     // Separate into categories for easier frontend handling
     const categorized = {
+      // Debts where this user is the debtor (they requested to owe)
       debtsOwed: bloodMarkers.filter(marker =>
-        (marker.debtorId as any)._id?.toString() === userId &&
+        ((marker as any).requesterId as any)._id?.toString() === userId &&
         ['Pendiente', 'Pago Pendiente de Confirmación'].includes(marker.status)
       ),
+      // Debts where this user is owed (they are the creditor)
       debtsOwing: bloodMarkers.filter(marker =>
         (marker.creditorId as any)._id?.toString() === userId &&
         ['Pendiente', 'Pago Pendiente de Confirmación'].includes(marker.status)
       ),
+      // Pending requests where this user needs to respond (they are the creditor)
       pendingRequests: bloodMarkers.filter(marker =>
         (marker.creditorId as any)._id?.toString() === userId &&
         marker.status === 'Solicitud Pendiente'
       ),
+      // Requests this user sent that are still pending
+      sentRequests: bloodMarkers.filter(marker =>
+        ((marker as any).requesterId as any)._id?.toString() === userId &&
+        marker.status === 'Solicitud Pendiente'
+      ),
+      // Settled debts involving this user
       settledDebts: bloodMarkers.filter(marker =>
         marker.status === 'Saldado'
       ),
+      // Rejected requests involving this user
       rejectedRequests: bloodMarkers.filter(marker =>
         marker.status === 'Rechazada'
       ),
@@ -304,6 +339,7 @@ export const getBloodMarkersByUser = async (req: AuthRequest, res: Response): Pr
           debtsOwed: categorized.debtsOwed.map(marker => marker.toJSON()),
           debtsOwing: categorized.debtsOwing.map(marker => marker.toJSON()),
           pendingRequests: categorized.pendingRequests.map(marker => marker.toJSON()),
+          sentRequests: categorized.sentRequests.map(marker => marker.toJSON()),
           settledDebts: categorized.settledDebts.map(marker => marker.toJSON()),
           rejectedRequests: categorized.rejectedRequests.map(marker => marker.toJSON()),
         },

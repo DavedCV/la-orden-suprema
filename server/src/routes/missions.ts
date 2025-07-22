@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getMissions,
   getAvailableMissions,
+  getAssassinMissions,
   createMission,
   updateMission,
   assignMission,
@@ -29,6 +30,13 @@ router.get('/', authenticate, requireAdmin, getMissions);
 router.get('/available', authenticate, requireAssassin, getAvailableMissions);
 
 /**
+ * @route   GET /api/missions/my-missions
+ * @desc    Get missions assigned to the current assassin
+ * @access  Private (Assassin only)
+ */
+router.get('/my-missions', authenticate, requireAssassin, getAssassinMissions);
+
+/**
  * @route   POST /api/missions
  * @desc    Create a new mission
  * @access  Private (Admin only)
@@ -51,7 +59,7 @@ router.patch('/:missionId/assign', authenticate, requireAdmin, assignMission);
 
 /**
  * @route   POST /api/missions/:missionId/apply
- * @desc    Apply to an available mission
+ * @desc    Take an available mission (directly assign to assassin)
  * @access  Private (Assassin only)
  */
 router.post('/:missionId/apply', authenticate, requireAssassin, applyToMission);

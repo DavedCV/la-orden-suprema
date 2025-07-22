@@ -1,170 +1,285 @@
 import React from "react";
-import {
-  Calendar,
-  CheckCircle,
-  DollarSign,
-  Skull,
-  Mail,
-  XCircle,
-} from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../shared/components/Button";
+import { apiService } from "../../../shared/services/api";
+import { toast } from "../../../shared/utils/toast";
 import { formatDate } from "../../../shared/utils";
 import {
-  getStatusColorForCard,
-  getStatusIcon,
-  getMarkerRole,
-  canPayMarker,
-  canConfirmPayment,
-  canRespondToRequest,
-  getMarkerDescription,
-  getRoleDisplayInfo,
-} from "../utils/statusUtils";
-import type { BloodMarkerCardProps } from "../types";
+  Calendar,
+  User,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Eye,
+  ArrowRight,
+  Skull,
+} from "lucide-react";
+import type { BloodMarker, Assassin } from "../../../shared/types";
 
-export const BloodMarkerCard = React.memo(function BloodMarkerCard({
+interface BloodMarkerCardProps {
+  marker: BloodMarker;
+  assassins: Assassin[];
+  currentUserId: string;
+  onRequestResponse?: () => void;
+  onViewDetails: () => void;
+  onRefresh: () => void;
+}
+
+export function BloodMarkerCard({
   marker,
+  assassins,
   currentUserId,
-  otherPartyName,
-  onPayMarker,
-  onConfirmPayment,
+  onRequestResponse,
   onViewDetails,
-  onAcceptRequest,
-}: // onRejectRequest, // Not used directly - handled through modal
-BloodMarkerCardProps) {
-  const { isCreditor } = getMarkerRole(marker, currentUserId);
-  const StatusIcon = getStatusIcon(marker.status);
-  const roleInfo = getRoleDisplayInfo(isCreditor);
-  const description = getMarkerDescription(
-    marker,
-    currentUserId,
-    otherPartyName
-  );
+  onRefresh,
+}: BloodMarkerCardProps) {
+  const queryClient = useQueryClient();
 
-  const statusClasses = getStatusColorForCard(marker.status, isCreditor);
-  const showPayButton = canPayMarker(marker, currentUserId);
-  const showConfirmButton = canConfirmPayment(marker, currentUserId);
-  const showRequestActions = canRespondToRequest(marker, currentUserId);
+  const debtor = assassins.find((a) => a.id === marker.debtorId);
+  const creditor = assassins.find((a) => a.id === marker.creditorId);
 
-  const handleAcceptRequest = () => {
-    if (onAcceptRequest) {
-      onAcceptRequest(marker.id);
+  const isDebtor = marker.debtorId === currentUserId;
+  const isCreditor = marker.creditorId === currentUserId;
+
+  // Mutations
+  const payMutation = useMutation({
+    mutationFn: () => apiService.payBloodMarker(marker.id),
+    onSuccess: () => {
+      toast({
+        type: "success",
+        title: "Marcador pagado",
+        message: "Has marcado la deuda como pagada. Esperando confirmación.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      onRefresh();
+    },
+    onError: () => {
+      toast({
+        type: "error",
+        title: "Error",
+        message: "No se pudo procesar el pago del marcador",
+      });
+    },
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: () => apiService.confirmBloodMarkerPayment(marker.id),
+    onSuccess: () => {
+      toast({
+        type: "success",
+        title: "Pago confirmado",
+        message: "El marcador ha sido saldado exitosamente",
+      });
+      queryClient.invalidateQueries({ queryKey: ["blood-markers"] });
+      onRefresh();
+    },
+    onError: () => {
+      toast({
+        type: "error",
+        title: "Error",
+        message: "No se pudo confirmar el pago",
+      });
+    },
+  });
+
+  const getStatusInfo = () => {
+    switch (marker.status) {
+      case "Solicitud Pendiente":
+        return {
+          color: "text-yellow-400 bg-yellow-500/20",
+          icon: <Clock className="h-4 w-4" />,
+          label: "Solicitud Pendiente",
+        };
+      case "Pendiente":
+        return {
+          color: isDebtor
+            ? "text-red-400 bg-red-500/20"
+            : "text-green-400 bg-green-500/20",
+          icon: <AlertTriangle className="h-4 w-4" />,
+          label: "Pendiente",
+        };
+      case "Pago Pendiente de Confirmación":
+        return {
+          color: "text-yellow-400 bg-yellow-500/20",
+          icon: <Clock className="h-4 w-4" />,
+          label: "Esperando Confirmación",
+        };
+      case "Saldado":
+        return {
+          color: "text-green-400 bg-green-500/20",
+          icon: <CheckCircle className="h-4 w-4" />,
+          label: "Saldado",
+        };
+      case "Rechazada":
+        return {
+          color: "text-red-400 bg-red-500/20",
+          icon: <XCircle className="h-4 w-4" />,
+          label: "Rechazada",
+        };
+      default:
+        return {
+          color: "text-orden-400 bg-orden-700/50",
+          icon: <Clock className="h-4 w-4" />,
+          label: marker.status,
+        };
     }
   };
 
-  const handleRejectRequest = () => {
-    // For quick reject without reason - open modal instead
-    onViewDetails(marker);
-  };
+  const statusInfo = getStatusInfo();
+
+  const canPay = isDebtor && marker.status === "Pendiente";
+  const canConfirm =
+    isCreditor && marker.status === "Pago Pendiente de Confirmación";
+  const canRespond =
+    isCreditor && marker.status === "Solicitud Pendiente" && onRequestResponse;
 
   return (
-    <div className="card p-6 hover:border-red-500/30 transition-colors">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className={`p-2 rounded-lg ${roleInfo.bgColor}`}>
-              {marker.status === "Solicitud Pendiente" ? (
-                <Mail className={`h-5 w-5 text-blue-400`} />
-              ) : isCreditor ? (
-                <DollarSign className={`h-5 w-5 ${roleInfo.iconColor}`} />
-              ) : (
-                <Skull className={`h-5 w-5 ${roleInfo.iconColor}`} />
-              )}
+    <div className="bg-orden-800 rounded-lg border border-orden-700 hover:border-orden-600 transition-colors">
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="bg-red-500/20 p-2 rounded-full">
+              <Skull className="h-5 w-5 text-red-400" />
             </div>
-
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-1">
-                <h3 className="font-medium text-orden-100">{description}</h3>
-                <div
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses}`}
+            <div>
+              <div className="flex items-center space-x-2">
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}
                 >
-                  <div className="flex items-center space-x-1">
-                    <StatusIcon className="h-3 w-3" />
-                    <span>{marker.status}</span>
-                  </div>
-                </div>
+                  {statusInfo.icon}
+                  <span className="ml-1">{statusInfo.label}</span>
+                </span>
               </div>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onViewDetails}
+            className="text-orden-400 hover:text-orden-200"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
 
-              <p className="text-sm text-orden-300 mb-2 line-clamp-2">
-                {marker.description}
-              </p>
+        {/* Description */}
+        <div className="mb-4">
+          <p className="text-orden-200 mb-2 line-clamp-3">
+            {marker.description}
+          </p>
+        </div>
 
-              <div className="flex items-center text-xs text-orden-400 space-x-4">
-                <div className="flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  {formatDate(marker.createdAt)}
-                </div>
-                {marker.paidAt && (
-                  <div className="flex items-center">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Pagado {formatDate(marker.paidAt)}
-                  </div>
+        {/* Participants Info */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4 text-red-400" />
+            <div>
+              <p className="text-xs text-orden-400">Deudor</p>
+              <p className="text-sm text-orden-200 font-medium">
+                {debtor?.alias || "Desconocido"}
+                {isDebtor && (
+                  <span className="text-xs text-yellow-400 ml-2">(Tú)</span>
                 )}
-              </div>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4 text-green-400" />
+            <div>
+              <p className="text-xs text-orden-400">Acreedor</p>
+              <p className="text-sm text-orden-200 font-medium">
+                {creditor?.alias || "Desconocido"}
+                {isCreditor && (
+                  <span className="text-xs text-yellow-400 ml-2">(Tú)</span>
+                )}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-2 ml-4">
-          {showRequestActions && (
-            <>
+        {/* Date and Actions */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-xs text-orden-400">
+            <Calendar className="h-3 w-3" />
+            <span>Creado: {formatDate(marker.createdAt)}</span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            {canRespond && (
               <Button
+                variant="primary"
                 size="sm"
-                onClick={handleAcceptRequest}
-                className="bg-green-600 hover:bg-green-700 text-xs"
-                aria-label="Aceptar solicitud"
+                onClick={onRequestResponse}
+                className="text-xs"
               >
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Aceptar
+                Responder
+                <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
+            )}
+
+            {canPay && (
               <Button
+                variant="danger"
                 size="sm"
-                variant="ghost"
-                onClick={handleRejectRequest}
-                className="text-red-400 hover:text-red-300 text-xs"
-                aria-label="Rechazar solicitud"
+                onClick={() => payMutation.mutate()}
+                disabled={payMutation.isPending}
+                className="text-xs"
               >
-                <XCircle className="h-3 w-3 mr-1" />
-                Rechazar
+                {payMutation.isPending ? "Procesando..." : "Pagar"}
+                <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
-            </>
-          )}
+            )}
 
-          {showPayButton && (
-            <Button
-              size="sm"
-              onClick={() => onPayMarker(marker.id)}
-              className="bg-red-600 hover:bg-red-700 text-xs"
-              aria-label="Pagar marcador"
-            >
-              <Skull className="h-3 w-3 mr-1" />
-              Pagar
-            </Button>
-          )}
-
-          {showConfirmButton && (
-            <Button
-              size="sm"
-              onClick={() => onConfirmPayment(marker.id)}
-              className="bg-yellow-600 hover:bg-yellow-700 text-xs"
-              aria-label="Confirmar pago"
-            >
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Confirmar
-            </Button>
-          )}
-
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => onViewDetails(marker)}
-            className="text-orden-300 hover:text-orden-100 text-xs"
-            aria-label="Ver detalles"
-          >
-            Ver detalles
-          </Button>
+            {canConfirm && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => confirmMutation.mutate()}
+                disabled={confirmMutation.isPending}
+                className="text-xs"
+              >
+                {confirmMutation.isPending ? "Confirmando..." : "Confirmar"}
+                <CheckCircle className="h-3 w-3 ml-1" />
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Additional Status Information */}
+        {marker.paidAt && (
+          <div className="mt-3 pt-3 border-t border-orden-700">
+            <div className="flex items-center space-x-2 text-xs text-orden-400">
+              <Clock className="h-3 w-3" />
+              <span>Marcado como pagado: {formatDate(marker.paidAt)}</span>
+            </div>
+          </div>
+        )}
+
+        {marker.confirmedAt && (
+          <div className="mt-1">
+            <div className="flex items-center space-x-2 text-xs text-green-400">
+              <CheckCircle className="h-3 w-3" />
+              <span>Confirmado: {formatDate(marker.confirmedAt)}</span>
+            </div>
+          </div>
+        )}
+
+        {marker.rejectedAt && (
+          <div className="mt-3 pt-3 border-t border-orden-700">
+            <div className="flex items-center space-x-2 text-xs text-red-400">
+              <XCircle className="h-3 w-3" />
+              <span>Rechazado: {formatDate(marker.rejectedAt)}</span>
+            </div>
+            {marker.rejectionReason && (
+              <p className="text-xs text-orden-400 mt-1">
+                Razón: {marker.rejectionReason}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
-});
+}

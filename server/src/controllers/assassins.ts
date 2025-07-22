@@ -7,51 +7,72 @@ import { AuthRequest, ApiResponse, PaginatedResponse, CreateAssassinForm, Asassi
 
 export const getAssassins = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    if (!req.user || req.user.role !== 'admin') {
-      throw new ForbiddenError('Admin access required');
+    if (!req.user) {
+      throw new ForbiddenError('Authentication required');
     }
 
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
+    // Different behavior for admins vs assassins
+    if (req.user.role === 'admin') {
+      // Full admin access with pagination and filtering
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
 
-    // Build query filters
-    const filter: any = { role: 'assassin' };
+      // Build query filters
+      const filter: any = { role: 'assassin' };
 
-    if (req.query.status && req.query.status !== 'Todos') {
-      filter.status = req.query.status;
+      if (req.query.status && req.query.status !== 'Todos') {
+        filter.status = req.query.status;
+      }
+
+      if (req.query.search) {
+        const searchRegex = new RegExp(req.query.search as string, 'i');
+        filter.$or = [
+          { alias: searchRegex },
+          { realName: searchRegex },
+          { email: searchRegex },
+        ];
+      }
+
+      const [assassins, total] = await Promise.all([
+        User.find(filter)
+          .select('-password')
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit),
+        User.countDocuments(filter),
+      ]);
+
+      const response: PaginatedResponse<any> = {
+        success: true,
+        data: assassins.map(assassin => assassin.toJSON()),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+
+      res.status(200).json(response);
+    } else if (req.user.role === 'assassin') {
+      // Limited access for assassins - only basic info about active assassins
+      const assassins = await User.find({
+        role: 'assassin',
+        status: 'Activo', // Only active assassins
+      })
+        .select('id alias realName status joinDate completedMissions goldCoins') // Limited fields
+        .sort({ alias: 1 });
+
+      const response: ApiResponse<any[]> = {
+        success: true,
+        data: assassins.map(assassin => assassin.toJSON()),
+      };
+
+      res.status(200).json(response);
+    } else {
+      throw new ForbiddenError('Invalid user role');
     }
-
-    if (req.query.search) {
-      const searchRegex = new RegExp(req.query.search as string, 'i');
-      filter.$or = [
-        { alias: searchRegex },
-        { realName: searchRegex },
-        { email: searchRegex },
-      ];
-    }
-
-    const [assassins, total] = await Promise.all([
-      User.find(filter)
-        .select('-password')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      User.countDocuments(filter),
-    ]);
-
-    const response: PaginatedResponse<any> = {
-      success: true,
-      data: assassins.map(assassin => assassin.toJSON()),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-
-    res.status(200).json(response);
   } catch (error) {
     handleError(error as Error, res);
   }

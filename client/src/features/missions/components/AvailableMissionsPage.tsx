@@ -36,24 +36,25 @@ export function AvailableMissionsPage() {
     queryFn: () => apiService.getAvailableMissions(),
   });
 
-  // Mutation for applying to missions
-  const applyMutation = useMutation({
+  // Mutation for taking missions
+  const takeMissionMutation = useMutation({
     mutationFn: (missionId: string) => apiService.applyToMission(missionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["available-missions"] });
       queryClient.invalidateQueries({ queryKey: ["assassin-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["assassin-missions"] });
       toast({
         type: "success",
-        title: "Postulación enviada",
+        title: "Misión tomada",
         message:
-          "Tu postulación ha sido enviada. El administrador la revisará pronto.",
+          "Has tomado la misión exitosamente. Ahora puedes iniciarla desde tu panel.",
       });
     },
     onError: () => {
       toast({
         type: "error",
         title: "Error",
-        message: "No se pudo enviar la postulación. Inténtalo de nuevo.",
+        message: "No se pudo tomar la misión. Inténtalo de nuevo.",
       });
     },
   });
@@ -73,11 +74,11 @@ export function AvailableMissionsPage() {
   const hasActiveFilters = searchQuery !== "" || priorityFilter !== "all";
 
   // Event handlers
-  const handleApplyToMission = useCallback(
+  const handleTakeMission = useCallback(
     (missionId: string) => {
-      applyMutation.mutate(missionId);
+      takeMissionMutation.mutate(missionId);
     },
-    [applyMutation]
+    [takeMissionMutation]
   );
 
   const handleClearFilters = useCallback(() => {
@@ -208,8 +209,8 @@ export function AvailableMissionsPage() {
               <AvailableMissionCard
                 key={mission.id}
                 mission={mission}
-                onApply={handleApplyToMission}
-                isApplying={applyMutation.isPending}
+                onApply={handleTakeMission}
+                isApplying={takeMissionMutation.isPending}
               />
             ))}
           </div>

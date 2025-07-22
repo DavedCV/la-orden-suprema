@@ -225,6 +225,10 @@ class ApiService {
     return this.request("/missions/available");
   }
 
+  async getAssassinMissions(): Promise<ApiResponse<Mission[]>> {
+    return this.request("/missions/my-missions");
+  }
+
   async createMission(data: CreateMissionForm): Promise<ApiResponse<Mission>> {
     return this.request("/missions", {
       method: "POST",
@@ -307,7 +311,7 @@ class ApiService {
     data: RespondToBloodMarkerForm
   ): Promise<ApiResponse<BloodMarker>> {
     return this.request(`/blood-markers/${data.markerId}/respond`, {
-      method: "POST",
+      method: "PATCH",
       body: JSON.stringify({
         accepted: data.accepted,
         rejectionReason: data.rejectionReason,
@@ -317,7 +321,7 @@ class ApiService {
 
   async payBloodMarker(markerId: string): Promise<ApiResponse<BloodMarker>> {
     return this.request(`/blood-markers/${markerId}/pay`, {
-      method: "POST",
+      method: "PATCH",
     });
   }
 
@@ -325,8 +329,22 @@ class ApiService {
     markerId: string
   ): Promise<ApiResponse<BloodMarker>> {
     return this.request(`/blood-markers/${markerId}/confirm`, {
-      method: "POST",
+      method: "PATCH",
     });
+  }
+
+  async getBloodMarkersByUser(userId: string): Promise<ApiResponse<{
+    all: BloodMarker[];
+    categorized: {
+      debtsOwed: BloodMarker[];
+      debtsOwing: BloodMarker[];
+      pendingRequests: BloodMarker[];
+      sentRequests: BloodMarker[];
+      settledDebts: BloodMarker[];
+      rejectedRequests: BloodMarker[];
+    };
+  }>> {
+    return this.request(`/blood-markers/user/${userId}`);
   }
 
   // Profile Management

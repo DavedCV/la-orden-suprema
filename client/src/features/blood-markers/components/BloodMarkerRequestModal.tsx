@@ -1,211 +1,244 @@
-import React, { useState } from "react";
-import { CheckCircle, Mail, X, XCircle } from "lucide-react";
+import React from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "../../../shared/components/Button";
-import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
+import { apiService } from "../../../shared/services/api";
+import { toast } from "../../../shared/utils/toast";
 import { formatDate } from "../../../shared/utils";
-import type { BloodMarker } from "../../../shared/types";
+import { X, Skull, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import type {
+  BloodMarker,
+  RespondToBloodMarkerForm,
+} from "../../../shared/types";
 
 interface BloodMarkerRequestModalProps {
-  marker: BloodMarker;
-  otherPartyName: string;
+  request: BloodMarker;
+  requesterName: string;
   onClose: () => void;
-  onAccept: (markerId: string) => void;
-  onReject: (markerId: string, reason: string) => void;
-  isProcessing: boolean;
+  onSuccess: () => void;
 }
 
-export const BloodMarkerRequestModal = React.memo(
-  function BloodMarkerRequestModal({
-    marker,
-    otherPartyName,
-    onClose,
-    onAccept,
-    onReject,
-    isProcessing,
-  }: BloodMarkerRequestModalProps) {
-    const [isRejecting, setIsRejecting] = useState(false);
-    const [rejectionReason, setRejectionReason] = useState("");
+export function BloodMarkerRequestModal({
+  request,
+  requesterName,
+  onClose,
+  onSuccess,
+}: BloodMarkerRequestModalProps) {
+  const [isRejecting, setIsRejecting] = React.useState(false);
+  const [rejectionReason, setRejectionReason] = React.useState("");
 
-    const handleAccept = () => {
-      onAccept(marker.id);
-    };
+  const respondMutation = useMutation({
+    mutationFn: (data: RespondToBloodMarkerForm) =>
+      apiService.respondToBloodMarkerRequest(data),
+    onSuccess: (response) => {
+      toast({
+        type: "success",
+        title: "Respuesta enviada",
+        message: response.message || "Tu respuesta ha sido registrada",
+      });
+      onSuccess();
+    },
+    onError: (error: unknown) => {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No se pudo procesar la respuesta";
+      toast({
+        type: "error",
+        title: "Error",
+        message: errorMessage,
+      });
+    },
+  });
 
-    const handleReject = () => {
-      if (!rejectionReason.trim()) {
-        setIsRejecting(true);
-        return;
-      }
-      onReject(marker.id, rejectionReason.trim());
-    };
+  const handleAccept = () => {
+    respondMutation.mutate({
+      markerId: request.id,
+      accepted: true,
+    });
+  };
 
-    const handleStartReject = () => {
-      setIsRejecting(true);
-    };
+  const handleReject = () => {
+    if (!rejectionReason.trim()) {
+      toast({
+        type: "error",
+        title: "Razón requerida",
+        message: "Debes proporcionar una razón para rechazar la solicitud",
+      });
+      return;
+    }
 
-    const handleCancelReject = () => {
-      setIsRejecting(false);
-      setRejectionReason("");
-    };
+    respondMutation.mutate({
+      markerId: request.id,
+      accepted: false,
+      rejectionReason: rejectionReason.trim(),
+    });
+  };
 
-    return (
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="request-modal-title"
-      >
-        <div className="bg-orden-800 rounded-lg border border-orden-700 w-full max-w-md">
-          <div className="flex items-center justify-between p-6 border-b border-orden-700">
-            <div className="flex items-center space-x-3">
-              <div className="bg-blue-500/20 p-2 rounded-lg" aria-hidden="true">
-                <Mail className="h-5 w-5 text-blue-400" />
-              </div>
-              <div>
-                <h3
-                  id="request-modal-title"
-                  className="text-lg font-semibold text-orden-100"
-                >
-                  Solicitud de Marcador de Sangre
-                </h3>
-                <p className="text-sm text-orden-400">De: {otherPartyName}</p>
-              </div>
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-orden-800 rounded-lg border border-orden-700 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-orden-700">
+          <div className="flex items-center space-x-3">
+            <div className="bg-yellow-500/20 p-2 rounded-full">
+              <Skull className="h-5 w-5 text-yellow-400" />
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              aria-label="Cerrar modal"
-              disabled={isProcessing}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="p-6 space-y-4">
-            {/* Descripción */}
             <div>
-              <h4 className="text-sm font-medium text-orden-200 mb-2">
-                Descripción del favor:
-              </h4>
-              <div className="bg-orden-700/50 rounded-lg p-3">
-                <p className="text-orden-100 text-sm leading-relaxed">
-                  {marker.description}
-                </p>
-              </div>
+              <h2 className="text-lg font-semibold text-orden-100">
+                Solicitud de Blood Marker
+              </h2>
+              <p className="text-sm text-orden-400">De: {requesterName}</p>
             </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-orden-400 hover:text-orden-200"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
-            {/* Detalles */}
-            <div className="text-xs text-orden-400 space-y-1">
-              <p>Fecha de solicitud: {formatDate(marker.createdAt)}</p>
-              <p>ID: {marker.id}</p>
-            </div>
-
-            {/* Mensaje informativo */}
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-              <div className="flex items-start space-x-2">
-                <Mail
-                  className="h-4 w-4 text-blue-400 mt-0.5"
-                  aria-hidden="true"
-                />
+        <div className="p-6 space-y-6">
+          {/* Request Details */}
+          <div>
+            <h3 className="text-sm font-medium text-orden-300 mb-3">
+              Detalles de la solicitud
+            </h3>
+            <div className="bg-orden-900 rounded-lg p-4 border border-orden-600">
+              <div className="space-y-3">
                 <div>
-                  <h4 className="text-sm font-medium text-blue-400 mb-1">
-                    Solicitud de confirmación
-                  </h4>
-                  <p className="text-xs text-orden-300">
-                    {otherPartyName} está solicitando que confirmes este favor.
-                    Solo acepta si realmente proporcionaste la asistencia
-                    descrita.
+                  <p className="text-xs text-orden-400 mb-1">Solicitante</p>
+                  <p className="text-orden-200 font-medium">{requesterName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-orden-400 mb-1">
+                    Fecha de solicitud
+                  </p>
+                  <p className="text-orden-200">
+                    {formatDate(request.createdAt)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-orden-400 mb-1">
+                    Descripción del favor
+                  </p>
+                  <p className="text-orden-200 leading-relaxed">
+                    {request.description}
                   </p>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Formulario de rechazo */}
-            {isRejecting && (
-              <div className="space-y-3">
-                <label
-                  htmlFor="rejection-reason"
-                  className="block text-sm font-medium text-orden-200"
-                >
-                  Razón del rechazo (opcional):
-                </label>
-                <textarea
-                  id="rejection-reason"
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 bg-orden-700 border border-orden-600 rounded-lg text-orden-100 placeholder-orden-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                  placeholder="Especifica por qué no reconoces este favor..."
-                  maxLength={200}
-                />
-                <p className="text-xs text-orden-400">Máximo 200 caracteres</p>
+          {/* Important Information */}
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+            <div className="flex items-start space-x-2">
+              <AlertTriangle className="h-4 w-4 text-blue-400 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-400">
+                  ¿Qué significa esto?
+                </p>
+                <p className="text-xs text-orden-300 mt-1">
+                  <strong>{requesterName}</strong> está solicitando contraer una
+                  deuda contigo. Si aceptas, tendrán la obligación de devolverte
+                  un favor equivalente en el futuro. Esta es una relación seria
+                  dentro del código de la orden.
+                </p>
               </div>
-            )}
-
-            {/* Botones de acción */}
-            <div className="flex gap-3 pt-4">
-              {!isRejecting ? (
-                <>
-                  <Button
-                    variant="ghost"
-                    onClick={handleStartReject}
-                    className="flex-1"
-                    disabled={isProcessing}
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Rechazar
-                  </Button>
-                  <Button
-                    onClick={handleAccept}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                    disabled={isProcessing}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <LoadingSpinner size="sm" className="mr-2" />
-                        Aceptando...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Aceptar
-                      </>
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    onClick={handleCancelReject}
-                    className="flex-1"
-                    disabled={isProcessing}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={handleReject}
-                    className="flex-1 bg-red-600 hover:bg-red-700"
-                    disabled={isProcessing}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <LoadingSpinner size="sm" className="mr-2" />
-                        Rechazando...
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Confirmar Rechazo
-                      </>
-                    )}
-                  </Button>
-                </>
-              )}
             </div>
           </div>
+
+          {/* Actions */}
+          {!isRejecting ? (
+            <div className="space-y-3">
+              <Button
+                onClick={handleAccept}
+                disabled={respondMutation.isPending}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {respondMutation.isPending
+                  ? "Procesando..."
+                  : "Aceptar Solicitud"}
+              </Button>
+
+              <Button
+                onClick={() => setIsRejecting(true)}
+                variant="secondary"
+                disabled={respondMutation.isPending}
+                className="w-full border-red-500/30 hover:bg-red-500/10"
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Rechazar Solicitud
+              </Button>
+
+              <Button
+                onClick={onClose}
+                variant="ghost"
+                className="w-full"
+                disabled={respondMutation.isPending}
+              >
+                Decidir más tarde
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-orden-300 mb-2">
+                  Razón del rechazo *
+                </label>
+                <p className="text-xs text-orden-500 mb-2">
+                  Explica por qué no puedes aceptar esta solicitud
+                </p>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Ej: No puedo comprometer favores en este momento debido a otras obligaciones..."
+                  rows={3}
+                  className="w-full px-3 py-2 bg-orden-900 border border-orden-600 rounded-md text-orden-200 placeholder-orden-500 focus:border-gold-500 focus:outline-none resize-none"
+                  maxLength={200}
+                />
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-orden-500">Mínimo 10 caracteres</p>
+                  <p className="text-xs text-orden-500">
+                    {rejectionReason.length}/200
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <Button
+                  onClick={() => {
+                    setIsRejecting(false);
+                    setRejectionReason("");
+                  }}
+                  variant="ghost"
+                  className="flex-1"
+                  disabled={respondMutation.isPending}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleReject}
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                  disabled={
+                    respondMutation.isPending ||
+                    !rejectionReason.trim() ||
+                    rejectionReason.length < 10
+                  }
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  {respondMutation.isPending
+                    ? "Procesando..."
+                    : "Confirmar Rechazo"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    );
-  }
-);
+    </div>
+  );
+}

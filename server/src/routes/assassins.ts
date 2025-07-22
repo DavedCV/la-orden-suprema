@@ -15,9 +15,9 @@ const router = Router();
 /**
  * @route   GET /api/assassins
  * @desc    Get paginated list of assassins with optional filters
- * @access  Private (Admin only)
+ * @access  Private (Authenticated users - limited data for assassins, full data for admin)
  */
-router.get('/', authenticate, requireAdmin, getAssassins);
+router.get('/', authenticate, requireAuthenticated, getAssassins);
 
 /**
  * @route   POST /api/assassins

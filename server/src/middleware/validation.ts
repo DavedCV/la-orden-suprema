@@ -170,15 +170,10 @@ export const updateMissionSchema = Joi.object({
 });
 
 export const createBloodMarkerSchema = Joi.object({
-  debtorId: Joi.string()
-    .required()
-    .messages({
-      'any.required': 'Debtor ID is required',
-    }),
   creditorId: Joi.string()
     .required()
     .messages({
-      'any.required': 'Creditor ID is required',
+      'any.required': 'Creditor ID is required - you must specify who you want to owe a favor to',
     }),
   description: Joi.string()
     .min(10)
@@ -188,7 +183,7 @@ export const createBloodMarkerSchema = Joi.object({
     .messages({
       'string.min': 'Description must be at least 10 characters long',
       'string.max': 'Description cannot exceed 500 characters',
-      'any.required': 'Description is required',
+      'any.required': 'Description is required - explain what favor you want to owe',
     }),
 });
 

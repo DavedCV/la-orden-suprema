@@ -1,144 +1,161 @@
-import React, { useState, useCallback } from "react";
-import { ArrowLeft, Plus, Skull } from "lucide-react";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../../shared/components/Button";
 import { LoadingSpinner } from "../../../shared/components/LoadingSpinner";
-import { useNavigation } from "../../../shared/hooks/useNavigation";
 import { useAuthStore } from "../../../shared/store/authStore";
-import { useBloodMarkersData } from "../hooks/useBloodMarkersData";
-import { BloodMarkerStats } from "./BloodMarkerStats";
-import { BloodMarkerFilters } from "./BloodMarkerFilters";
+// import { useNavigation } from "../../../shared/hooks/useNavigation"; // Currently unused
+import { apiService } from "../../../shared/services/api";
+import { Plus, Skull, Filter, Users, Clock, CheckCircle } from "lucide-react";
 import { BloodMarkerCard } from "./BloodMarkerCard";
+import { BloodMarkerFilters } from "./BloodMarkerFilters";
+import { BloodMarkerStats } from "./BloodMarkerStats";
 import { CreateBloodMarkerModal } from "./CreateBloodMarkerModal";
-import { BloodMarkerDetailsModal } from "./BloodMarkerDetailsModal";
 import { BloodMarkerRequestModal } from "./BloodMarkerRequestModal";
-import { PaymentConfirmationModal } from "./PaymentConfirmationModal";
-import { canRespondToRequest, canPayMarker } from "../utils/statusUtils";
+import { BloodMarkerDetailsModal } from "./BloodMarkerDetailsModal";
 import type { BloodMarker } from "../../../shared/types";
+
+type FilterType =
+  | "all"
+  | "owed_by_me"
+  | "owed_to_me"
+  | "pending_requests"
+  | "sent_requests"
+  | "settled"
+  | "rejected";
+type StatusFilter =
+  | "all"
+  | "Solicitud Pendiente"
+  | "Pendiente"
+  | "Pago Pendiente de Confirmación"
+  | "Saldado"
+  | "Rechazada";
 
 export function BloodMarkersPage() {
   const { user } = useAuthStore();
-  const { goBack } = useNavigation();
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedMarker, setSelectedMarker] = useState<BloodMarker | null>(
-    null
-  );
-  const [selectedRequest, setSelectedRequest] = useState<BloodMarker | null>(
-    null
-  );
-  const [selectedPayment, setSelectedPayment] = useState<BloodMarker | null>(
-    null
-  );
+  // const { navigateTo } = useNavigation(); // Removed as not used in current implementation
 
+  // State management
+  const [filterType, setFilterType] = React.useState<FilterType>("all");
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [showCreateModal, setShowCreateModal] = React.useState(false);
+  const [selectedRequest, setSelectedRequest] =
+    React.useState<BloodMarker | null>(null);
+  const [selectedDetails, setSelectedDetails] =
+    React.useState<BloodMarker | null>(null);
+
+  // Fetch blood markers and assassins
   const {
-    filteredMarkers,
-    availableAssassins,
-    stats,
-    activeFilter,
-    searchQuery,
-    isLoading,
-    hasError,
-    handlePayMarker,
-    handleConfirmPayment,
-    handleCreateMarker,
-    handleAcceptRequest,
-    handleRejectRequest,
-    handleFilterChange,
-    handleSearchChange,
-    getOtherPartyName,
-    refreshData,
-    isProcessingRequest,
-    isPaying,
-  } = useBloodMarkersData();
+    data: bloodMarkersData,
+    isLoading: isLoadingMarkers,
+    refetch: refetchMarkers,
+  } = useQuery({
+    queryKey: ["blood-markers"],
+    queryFn: () => apiService.getBloodMarkers(),
+  });
 
-  // Memoized handlers to prevent unnecessary re-renders
-  const handleCreateModalOpen = useCallback(() => setShowCreateModal(true), []);
-  const handleCreateModalClose = useCallback(
-    () => setShowCreateModal(false),
-    []
-  );
+  const { data: assassinsData, isLoading: isLoadingAssassins } = useQuery({
+    queryKey: ["assassins"],
+    queryFn: () => apiService.getAssassins(),
+  });
 
-  const handleCreateSuccess = useCallback(
-    (data: { debtorId: string; description: string }) => {
-      handleCreateMarker(data);
-      setShowCreateModal(false);
-    },
-    [handleCreateMarker]
-  );
+  const bloodMarkers = bloodMarkersData?.data || [];
+  const assassins = assassinsData?.data || [];
 
-  const handleViewDetails = useCallback(
-    (marker: BloodMarker) => {
-      if (canRespondToRequest(marker, user?.id || "")) {
-        setSelectedRequest(marker);
-      } else {
-        setSelectedMarker(marker);
+  // Filter blood markers based on current filters
+  const filteredMarkers = React.useMemo(() => {
+    let filtered = bloodMarkers;
+
+    // Filter by type
+    if (filterType !== "all" && user) {
+      switch (filterType) {
+        case "owed_by_me":
+          filtered = filtered.filter(
+            (marker) =>
+              marker.debtorId === user.id &&
+              ["Pendiente", "Pago Pendiente de Confirmación"].includes(
+                marker.status
+              )
+          );
+          break;
+        case "owed_to_me":
+          filtered = filtered.filter(
+            (marker) =>
+              marker.creditorId === user.id &&
+              ["Pendiente", "Pago Pendiente de Confirmación"].includes(
+                marker.status
+              )
+          );
+          break;
+        case "pending_requests":
+          filtered = filtered.filter(
+            (marker) =>
+              marker.creditorId === user.id &&
+              marker.status === "Solicitud Pendiente"
+          );
+          break;
+        case "sent_requests":
+          filtered = filtered.filter(
+            (marker) =>
+              marker.debtorId === user.id &&
+              marker.status === "Solicitud Pendiente"
+          );
+          break;
+        case "settled":
+          filtered = filtered.filter((marker) => marker.status === "Saldado");
+          break;
+        case "rejected":
+          filtered = filtered.filter((marker) => marker.status === "Rechazada");
+          break;
       }
-    },
-    [user?.id]
-  );
-
-  const handlePayMarkerClick = useCallback(
-    (markerId: string) => {
-      const marker = filteredMarkers.find((m) => m.id === markerId);
-      if (marker && canPayMarker(marker, user?.id || "")) {
-        setSelectedPayment(marker);
-      }
-    },
-    [filteredMarkers, user?.id]
-  );
-
-  const handleConfirmDebtPayment = useCallback(() => {
-    if (selectedPayment) {
-      handlePayMarker(selectedPayment.id);
-      setSelectedPayment(null);
     }
-  }, [selectedPayment, handlePayMarker]);
 
-  const handleCloseDetails = useCallback(() => {
-    setSelectedMarker(null);
-  }, []);
+    // Filter by status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((marker) => marker.status === statusFilter);
+    }
 
-  const handleCloseRequest = useCallback(() => {
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((marker) => {
+        const debtor = assassins.find((a) => a.id === marker.debtorId);
+        const creditor = assassins.find((a) => a.id === marker.creditorId);
+        return (
+          marker.description.toLowerCase().includes(query) ||
+          debtor?.alias.toLowerCase().includes(query) ||
+          creditor?.alias.toLowerCase().includes(query)
+        );
+      });
+    }
+
+    return filtered.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [bloodMarkers, filterType, statusFilter, searchQuery, user, assassins]);
+
+  const handleCreateSuccess = () => {
+    setShowCreateModal(false);
+    refetchMarkers();
+  };
+
+  const handleRequestResponse = () => {
     setSelectedRequest(null);
-  }, []);
+    refetchMarkers();
+  };
 
-  const handleClosePayment = useCallback(() => {
-    setSelectedPayment(null);
-  }, []);
+  const getFilterTypeOptions = () => [
+    { value: "all", label: "Todos", icon: Skull },
+    { value: "owed_by_me", label: "Mis Deudas", icon: Clock },
+    { value: "owed_to_me", label: "Me Deben", icon: CheckCircle },
+    { value: "pending_requests", label: "Solicitudes Pendientes", icon: Users },
+    { value: "sent_requests", label: "Enviadas", icon: Filter },
+    { value: "settled", label: "Saldadas", icon: CheckCircle },
+    { value: "rejected", label: "Rechazadas", icon: Filter },
+  ];
 
-  const handlePayMarkerWithClose = useCallback(
-    (markerId: string) => {
-      handlePayMarker(markerId);
-      setSelectedMarker(null);
-    },
-    [handlePayMarker]
-  );
-
-  const handleConfirmPaymentWithClose = useCallback(
-    (markerId: string) => {
-      handleConfirmPayment(markerId);
-      setSelectedMarker(null);
-    },
-    [handleConfirmPayment]
-  );
-
-  const handleAcceptRequestWithClose = useCallback(
-    (markerId: string) => {
-      handleAcceptRequest(markerId);
-      setSelectedRequest(null);
-    },
-    [handleAcceptRequest]
-  );
-
-  const handleRejectRequestWithClose = useCallback(
-    (markerId: string, reason: string) => {
-      handleRejectRequest(markerId, reason);
-      setSelectedRequest(null);
-    },
-    [handleRejectRequest]
-  );
-
-  // Loading state
-  if (isLoading) {
+  if (isLoadingMarkers || isLoadingAssassins) {
     return (
       <div className="min-h-screen bg-orden-900 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -149,258 +166,138 @@ export function BloodMarkersPage() {
     );
   }
 
-  // Error state
-  if (hasError) {
-    return (
-      <div className="min-h-screen bg-orden-900 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Skull className="h-16 w-16 text-red-400 mx-auto" />
-          <h2 className="text-xl font-semibold text-orden-100">
-            Error al cargar datos
-          </h2>
-          <p className="text-orden-300">
-            No se pudieron cargar los marcadores de sangre. Intenta recargar la
-            página.
-          </p>
-          <Button onClick={refreshData} className="bg-red-600 hover:bg-red-700">
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-orden-900">
       {/* Header */}
-      <header
-        className="bg-orden-800 border-b border-orden-700 shadow-lg"
-        role="banner"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Mobile layout: stack vertically */}
-          <div className="flex flex-col space-y-4 py-4 sm:hidden">
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={goBack}
-                className="text-orden-300 hover:text-orden-100"
-                aria-label="Volver a la página anterior"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-
-              <div className="bg-red-500/20 p-2 rounded-lg" aria-hidden="true">
-                <Skull className="h-6 w-6 text-red-400" />
-              </div>
-
-              <div className="flex-1">
-                <h1 className="text-lg font-bold text-orden-100">
-                  Marcadores de Sangre
-                </h1>
-                <p className="text-sm text-orden-400">
-                  Sistema de favores y deudas
-                </p>
-              </div>
+      <div className="bg-orden-800 border-b border-orden-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-orden-100 flex items-center">
+                <Skull className="h-6 w-6 mr-2 text-red-400" />
+                Blood Markers
+              </h1>
+              <p className="text-orden-400 mt-1">
+                Gestiona tus deudas y favores dentro de la orden
+              </p>
             </div>
-
             <Button
-              onClick={handleCreateModalOpen}
-              className="bg-red-600 hover:bg-red-700 w-full justify-center"
-              aria-label="Crear nueva solicitud de marcador de sangre"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva Solicitud
-            </Button>
-          </div>
-
-          {/* Desktop layout: horizontal */}
-          <div className="hidden sm:flex items-center justify-between py-4">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={goBack}
-                className="text-orden-300 hover:text-orden-100"
-                aria-label="Volver a la página anterior"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver
-              </Button>
-
-              <div className="flex items-center space-x-3">
-                <div
-                  className="bg-red-500/20 p-2 rounded-lg"
-                  aria-hidden="true"
-                >
-                  <Skull className="h-6 w-6 text-red-400" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-orden-100">
-                    Marcadores de Sangre
-                  </h1>
-                  <p className="text-sm text-orden-400">
-                    Sistema de favores y deudas
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Button
-              onClick={handleCreateModalOpen}
+              onClick={() => setShowCreateModal(true)}
               className="bg-red-600 hover:bg-red-700"
-              aria-label="Crear nueva solicitud de marcador de sangre"
             >
               <Plus className="h-4 w-4 mr-2" />
-              <span className="hidden md:inline">Nueva Solicitud</span>
-              <span className="md:hidden">Nueva</span>
+              Crear Marcador
             </Button>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" role="main">
-        {/* Statistics */}
-        <BloodMarkerStats stats={stats} />
-
-        {/* Filters and Search */}
-        <BloodMarkerFilters
-          activeFilter={activeFilter}
-          searchQuery={searchQuery}
-          onFilterChange={handleFilterChange}
-          onSearchChange={handleSearchChange}
-        />
-
-        {/* Blood Markers List */}
-        <section aria-labelledby="markers-heading">
-          <h2 id="markers-heading" className="sr-only">
-            Lista de marcadores de sangre
-          </h2>
-
-          {filteredMarkers.length > 0 ? (
-            <div className="space-y-4" role="list">
-              {filteredMarkers.map((marker) => (
-                <div key={marker.id} role="listitem">
-                  <BloodMarkerCard
-                    marker={marker}
-                    currentUserId={user?.id || ""}
-                    otherPartyName={getOtherPartyName(marker)}
-                    onPayMarker={handlePayMarkerClick}
-                    onConfirmPayment={(markerId: string) =>
-                      handleConfirmPayment(markerId)
-                    }
-                    onViewDetails={handleViewDetails}
-                    onAcceptRequest={handleAcceptRequest}
-                    onRejectRequest={handleRejectRequest}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              activeFilter={activeFilter}
-              searchQuery={searchQuery}
-              onCreateMarker={handleCreateModalOpen}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar with Stats and Filters */}
+          <div className="lg:col-span-1 space-y-6">
+            <BloodMarkerStats
+              bloodMarkers={bloodMarkers}
+              currentUserId={user?.id || ""}
             />
-          )}
-        </section>
+
+            <BloodMarkerFilters
+              filterType={filterType}
+              onFilterTypeChange={setFilterType}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              filterTypeOptions={getFilterTypeOptions()}
+            />
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {filteredMarkers.length === 0 ? (
+              <div className="text-center py-12">
+                <Skull className="h-16 w-16 mx-auto mb-4 text-orden-600" />
+                <h3 className="text-lg font-medium text-orden-300 mb-2">
+                  No hay marcadores de sangre
+                </h3>
+                <p className="text-orden-500 mb-6">
+                  {filterType === "all"
+                    ? "Aún no tienes marcadores de sangre registrados."
+                    : "No hay marcadores que coincidan con los filtros seleccionados."}
+                </p>
+                {filterType === "all" && (
+                  <Button
+                    onClick={() => setShowCreateModal(true)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear tu primer marcador
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-orden-400">
+                    Mostrando {filteredMarkers.length} marcador
+                    {filteredMarkers.length !== 1 ? "es" : ""}
+                  </p>
+                </div>
+
+                <div className="grid gap-4">
+                  {filteredMarkers.map((marker) => (
+                    <BloodMarkerCard
+                      key={marker.id}
+                      marker={marker}
+                      assassins={assassins}
+                      currentUserId={user?.id || ""}
+                      onRequestResponse={
+                        marker.status === "Solicitud Pendiente" &&
+                        marker.creditorId === user?.id
+                          ? () => setSelectedRequest(marker)
+                          : undefined
+                      }
+                      onViewDetails={() => setSelectedDetails(marker)}
+                      onRefresh={refetchMarkers}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </main>
 
       {/* Modals */}
       {showCreateModal && (
         <CreateBloodMarkerModal
-          assassins={availableAssassins}
-          currentUserId={user?.id || ""}
-          onClose={handleCreateModalClose}
+          onClose={() => setShowCreateModal(false)}
           onSuccess={handleCreateSuccess}
-        />
-      )}
-
-      {selectedMarker && (
-        <BloodMarkerDetailsModal
-          marker={selectedMarker}
-          otherPartyName={getOtherPartyName(selectedMarker)}
-          currentUserId={user?.id || ""}
-          onClose={handleCloseDetails}
-          onPayMarker={handlePayMarkerWithClose}
-          onConfirmPayment={handleConfirmPaymentWithClose}
+          assassins={assassins}
         />
       )}
 
       {selectedRequest && (
         <BloodMarkerRequestModal
-          marker={selectedRequest}
-          otherPartyName={getOtherPartyName(selectedRequest)}
-          onClose={handleCloseRequest}
-          onAccept={handleAcceptRequestWithClose}
-          onReject={handleRejectRequestWithClose}
-          isProcessing={isProcessingRequest}
+          request={selectedRequest}
+          onClose={() => setSelectedRequest(null)}
+          onSuccess={handleRequestResponse}
+          requesterName={
+            assassins.find((a) => a.id === selectedRequest.debtorId)?.alias ||
+            "Desconocido"
+          }
         />
       )}
 
-      {selectedPayment && (
-        <PaymentConfirmationModal
-          marker={selectedPayment}
-          otherPartyName={getOtherPartyName(selectedPayment)}
-          onClose={handleClosePayment}
-          onConfirm={handleConfirmDebtPayment}
-          isProcessing={isPaying}
+      {selectedDetails && (
+        <BloodMarkerDetailsModal
+          marker={selectedDetails}
+          assassins={assassins}
+          currentUserId={user?.id || ""}
+          onClose={() => setSelectedDetails(null)}
+          onRefresh={refetchMarkers}
         />
       )}
     </div>
   );
 }
-
-// Empty State Component
-const EmptyState = React.memo(function EmptyState({
-  activeFilter,
-  searchQuery,
-  onCreateMarker,
-}: {
-  activeFilter: string;
-  searchQuery: string;
-  onCreateMarker: () => void;
-}) {
-  const hasFilters = activeFilter !== "all" || searchQuery.trim() !== "";
-
-  const getEmptyMessage = () => {
-    switch (activeFilter) {
-      case "requests":
-        return "No tienes solicitudes de marcadores pendientes";
-      case "sent_requests":
-        return "No has enviado solicitudes de marcadores";
-      case "owed_by_me":
-        return "No tienes deudas pendientes";
-      case "owed_to_me":
-        return "No tienes favores pendientes de cobro";
-      case "paid":
-        return "No tienes marcadores saldados";
-      default:
-        return hasFilters
-          ? "No hay marcadores que coincidan con los filtros seleccionados"
-          : "No tienes marcadores de sangre registrados";
-    }
-  };
-
-  return (
-    <div className="card p-12 text-center">
-      <Skull
-        className="h-16 w-16 text-orden-600 mx-auto mb-4"
-        aria-hidden="true"
-      />
-      <h3 className="text-lg font-medium text-orden-200 mb-2">
-        No hay marcadores de sangre
-      </h3>
-      <p className="text-orden-400 mb-6">{getEmptyMessage()}</p>
-      <Button
-        onClick={onCreateMarker}
-        className="bg-red-600 hover:bg-red-700"
-        aria-label="Crear primera solicitud de marcador de sangre"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        {hasFilters ? "Nueva solicitud" : "Primera solicitud"}
-      </Button>
-    </div>
-  );
-});

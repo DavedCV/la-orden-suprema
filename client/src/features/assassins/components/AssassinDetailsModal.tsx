@@ -142,7 +142,7 @@ export const AssassinDetailsModal = memo(function AssassinDetailsModal({
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-gold-400">
-                {assassin.goldCoins.toLocaleString()}
+                {(assassin.goldCoins || 0).toLocaleString()}
               </div>
               <div className="text-sm text-orden-400">Monedas de Oro</div>
             </div>

@@ -83,7 +83,7 @@ export const getAssassinDashboard = async (req: AuthRequest, res: Response): Pro
     // Get blood marker statistics
     const [bloodMarkersOwed, bloodMarkersOwing] = await Promise.all([
       BloodMarker.countDocuments({
-        debtorId: req.user.id,
+        requesterId: req.user.id,
         status: { $in: ['Pendiente', 'Pago Pendiente de Confirmación'] },
       }),
       BloodMarker.countDocuments({
@@ -215,20 +215,33 @@ const getAssassinRecentActivity = async (assassinId: string): Promise<Activity[]
   // Get recent blood markers involving this assassin
   const recentBloodMarkers = await BloodMarker.find({
     $or: [
-      { debtorId: assassinId },
+      { requesterId: assassinId },
       { creditorId: assassinId },
     ],
   })
-    .populate('debtorId', 'alias')
+    .populate('requesterId', 'alias')
     .populate('creditorId', 'alias')
     .sort({ createdAt: -1 })
     .limit(3);
 
   recentBloodMarkers.forEach(marker => {
-    const isDebtor = marker.debtorId.toString() === assassinId;
+    // Check if both requester and creditor are properly populated
+    const requesterId = (marker as any).requesterId;
+    const creditorId = marker.creditorId;
+
+    if (!requesterId || !creditorId) {
+      return; // Skip this marker if population failed
+    }
+
+    const isDebtor = requesterId.toString() === assassinId;
     const otherParty = isDebtor
-      ? (marker.creditorId as any).alias
-      : (marker.debtorId as any).alias;
+      ? (creditorId as any).alias
+      : (requesterId as any).alias;
+
+    // Skip if we can't get the other party's name
+    if (!otherParty) {
+      return;
+    }
 
     activities.push({
       id: `blood-marker-${marker._id}`,

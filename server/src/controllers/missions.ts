@@ -86,6 +86,30 @@ export const getAvailableMissions = async (req: AuthRequest, res: Response): Pro
   }
 };
 
+export const getAssassinMissions = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== 'assassin') {
+      throw new ForbiddenError('Assassin access required');
+    }
+
+    // Get all missions assigned to this assassin
+    const assassinMissions = await Mission.find({
+      assignedTo: req.user.id,
+    })
+      .populate('createdBy', 'alias')
+      .sort({ deadline: 1 });
+
+    const response: ApiResponse<any[]> = {
+      success: true,
+      data: assassinMissions.map(mission => mission.toJSON()),
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    handleError(error as Error, res);
+  }
+};
+
 export const createMission = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user || req.user.role !== 'admin') {
@@ -247,26 +271,35 @@ export const applyToMission = async (req: AuthRequest, res: Response): Promise<v
 
     // Check if mission is available
     if (mission.status !== 'No Asignada') {
-      throw new ConflictError('Mission is not available for application');
+      throw new ConflictError('Mission is not available');
     }
 
     // Check if deadline has passed
     if (new Date(mission.deadline) <= new Date()) {
-      throw new ConflictError('Cannot apply to expired mission');
+      throw new ConflictError('Cannot take expired mission');
     }
 
     // Check if assassin is active
     const assassin = await User.findById(req.user.id);
     if (!assassin || assassin.status !== 'Activo') {
-      throw new ConflictError('Only active assassins can apply to missions');
+      throw new ConflictError('Only active assassins can take missions');
     }
 
-    // In a real implementation, you would create an application record
-    // For now, we'll just return success and let admins manually assign
+    // Directly assign the mission to the assassin
+    mission.assignedTo = req.user.id;
+    mission.status = 'Asignada';
+    (mission as any).assignedAt = new Date().toISOString();
 
-    const response: ApiResponse = {
+    await mission.save();
+    await mission.populate([
+      { path: 'assignedTo', select: 'alias email' },
+      { path: 'createdBy', select: 'alias email' }
+    ]);
+
+    const response: ApiResponse<any> = {
       success: true,
-      message: 'Application submitted successfully. An administrator will review your request.',
+      data: mission.toJSON(),
+      message: `Mission assigned successfully to ${assassin.alias}`,
     };
 
     res.status(200).json(response);
